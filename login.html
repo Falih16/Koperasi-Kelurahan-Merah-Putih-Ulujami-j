@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Pengurus | Koperasi Kelurahan Merah Putih Ulujami</title>
+  <meta name="description" content="Portal Masuk Terautentikasi Pengurus Koperasi Kelurahan Merah Putih Ulujami.">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="login-body">
+
+  <div class="login-card">
+    <!-- Kolom Kiri: Panel Branding Institusional Merah Putih (45%) -->
+    <div class="login-branding">
+      <div class="login-brand-header">
+        <a href="index.html" title="Kembali ke Beranda Publik">
+          <img class="login-brand-logo brand-logo-img" src="" alt="Logo Koperasi Merah Putih Ulujami">
+        </a>
+        <div class="badge-merah-putih" style="background: rgba(255,255,255,0.2); color:#FFF; border-color: rgba(255,255,255,0.3); margin-bottom: 14px;">
+          <span class="dot" style="background:#FFF;"></span>
+          Portal Pengurus
+        </div>
+        <h2 class="login-brand-title brand-title-text">KKMP Ulujami</h2>
+        <p class="login-brand-tag">Sistem Informasi Administrasi & Layanan Terpadu Koperasi Warga</p>
+      </div>
+
+      <!-- 3 Poin Jaminan Tata Kelola -->
+      <ul class="login-guarantees">
+        <li class="login-guarantee-item">
+          <span class="login-guarantee-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <div>
+            <strong>Data Terenkripsi & Terlindungi</strong>
+            <div style="font-size: 0.775rem; opacity: 0.85;">Penyimpanan data anggota terproteksi tanpa kebocoran NIK/KTP publik.</div>
+          </div>
+        </li>
+        <li class="login-guarantee-item">
+          <span class="login-guarantee-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <div>
+            <strong>Transparansi Keuangan Terbuka</strong>
+            <div style="font-size: 0.775rem; opacity: 0.85;">Pencatatan kas dan status registrasi dapat diaudit akuntabel setiap saat.</div>
+          </div>
+        </li>
+        <li class="login-guarantee-item">
+          <span class="login-guarantee-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <div>
+            <strong>Aksesibilitas Operasional Cepat</strong>
+            <div style="font-size: 0.775rem; opacity: 0.85;">Tindak lanjut notifikasi WhatsApp pendaftar baru dengan satu klik praktis.</div>
+          </div>
+        </li>
+      </ul>
+
+      <div class="login-branding-footer">
+        &copy; 2024 - 2027 Koperasi Kelurahan Merah Putih Ulujami.
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Form Login Bersih (55%) -->
+    <div class="login-form-area">
+      <div style="margin-bottom: 24px;">
+        <a href="index.html" style="font-size: 0.85rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Kembali ke Beranda Publik
+        </a>
+        <h1 class="login-form-title">Masuk ke Portal</h1>
+        <p class="login-form-subtitle">Masukkan akun terdaftar untuk mengelola administrasi koperasi.</p>
+      </div>
+
+      <!-- Alert Proteksi Brute-Force -->
+      <div class="login-alert-lock" id="lockAlert">
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 4px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Akses Sementara Dikunci
+        </div>
+        <div id="lockMessage">Terlalu banyak percobaan gagal. Silakan tunggu 30 detik.</div>
+      </div>
+
+      <!-- Alert Pesan Error Biasa -->
+      <div id="errorAlert" style="display: none; background-color: var(--status-danger-bg); color: var(--status-danger-text); padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.875rem; margin-bottom: 18px;"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="loginUsername">Username / ID Pengurus</label>
+          <input type="text" id="loginUsername" class="form-control" placeholder="Masukkan username pengurus" autocomplete="username" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Kata Sandi</label>
+          <div class="password-input-group">
+            <input type="password" id="loginPassword" class="form-control" placeholder="Masukkan kata sandi" autocomplete="current-password" required>
+            <button type="button" class="password-toggle-btn" id="passwordToggleBtn" aria-label="Lihat Kata Sandi">
+              <svg id="eyeIconOpen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="eyeIconClosed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="login-options-row">
+          <label class="login-remember">
+            <input type="checkbox" id="rememberMe">
+            <span>Ingat saya di perangkat ini</span>
+          </label>
+          <a href="#" class="login-forgot-link" id="btnForgotPass">Lupa kata sandi?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btnLoginSubmit" style="width: 100%;">
+          <span id="btnText">Masuk Sekarang</span>
+          <svg id="btnSpinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none; animation: spin 0.8s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+        </button>
+      </form>
+
+      <!-- Petunjuk Akses Bawaan -->
+      <div style="margin-top: 24px; padding: 12px; background: var(--surface-alt); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--text-muted); border: 1px dashed var(--border-color);">
+        <strong style="color: var(--deep-burgundy);">Akun Bawaan Evaluasi:</strong><br>
+        Username: <code>admin</code> | Kata Sandi: <code>admin123</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Petunjuk Lupa Sandi -->
+  <div class="modal-overlay" id="forgotModal">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h4 class="modal-title">Pemulihan Akun Pengurus</h4>
+        <button class="modal-close-btn" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 16px;">
+          Demi menjaga keamanan data keanggotaan dan kas koperasi warga, reset kata sandi hanya dapat dilakukan secara manual oleh <strong>Ketua Koperasi</strong> atau <strong>Sekretaris</strong> di Sekretariat Kantor Kelurahan Ulujami.
+        </p>
+        <div style="background-color: var(--surface-alt); padding: 14px; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 16px;">
+          <div><strong>Kontak Hotline Sekretariat:</strong> 0812-8912-3456</div>
+          <div><strong>Email:</strong> kontak@koperasimerahputih-ulujami.id</div>
+          <div><strong>Jam Kerja:</strong> Senin – Sabtu (08.00 – 17.00 WIB)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-modal-close">Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+
+  <!-- Scripts -->
+  <script src="assets/js/store.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const Store = window.KMPStore;
+      if (!Store) return;
+
+      // Jika sudah login, langsung ke dashboard
+      if (Store.checkAuth()) {
+        window.location.href = 'admin.html';
+        return;
+      }
+
+      // Terapkan identitas logo & judul
+      const profile = Store.getProfile();
+      const logoSrc = profile.logoUrl && profile.logoUrl.trim() !== '' ? profile.logoUrl : Store.DEFAULT_LOGO_SVG;
+      document.querySelectorAll('.brand-logo-img').forEach(img => img.src = logoSrc);
+      document.querySelectorAll('.brand-title-text').forEach(t => t.textContent = profile.shortName || 'KKMP Ulujami');
+
+      const loginForm = document.getElementById('loginForm');
+      const userInput = document.getElementById('loginUsername');
+      const passInput = document.getElementById('loginPassword');
+      const lockAlert = document.getElementById('lockAlert');
+      const lockMessage = document.getElementById('lockMessage');
+      const errorAlert = document.getElementById('errorAlert');
+      const btnSubmit = document.getElementById('btnLoginSubmit');
+      const btnText = document.getElementById('btnText');
+      const btnSpinner = document.getElementById('btnSpinner');
+
+      // Toggle Password Show/Hide
+      const passToggle = document.getElementById('passwordToggleBtn');
+      const eyeOpen = document.getElementById('eyeIconOpen');
+      const eyeClosed = document.getElementById('eyeIconClosed');
+
+      passToggle.addEventListener('click', () => {
+        if (passInput.type === 'password') {
+          passInput.type = 'text';
+          eyeOpen.style.display = 'none';
+          eyeClosed.style.display = 'block';
+        } else {
+          passInput.type = 'password';
+          eyeOpen.style.display = 'block';
+          eyeClosed.style.display = 'none';
+        }
+      });
+
+      // Cek Brute-force status berkala
+      let timerInterval = null;
+      function checkLockout() {
+        const status = Store.getBruteForceStatus();
+        if (status.isLocked) {
+          lockAlert.classList.add('active');
+          lockMessage.textContent = `Terlalu banyak percobaan gagal (5x berturut-turut). Formulir dikunci selama ${status.remainingSeconds} detik.`;
+          btnSubmit.disabled = true;
+          userInput.disabled = true;
+          passInput.disabled = true;
+
+          if (!timerInterval) {
+            timerInterval = setInterval(() => {
+              const current = Store.getBruteForceStatus();
+              if (current.isLocked) {
+                lockMessage.textContent = `Terlalu banyak percobaan gagal (5x berturut-turut). Formulir dikunci selama ${current.remainingSeconds} detik.`;
+              } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                lockAlert.classList.remove('active');
+                btnSubmit.disabled = false;
+                userInput.disabled = false;
+                passInput.disabled = false;
+                errorAlert.style.display = 'none';
+              }
+            }, 1000);
+          }
+        } else {
+          lockAlert.classList.remove('active');
+          btnSubmit.disabled = false;
+          userInput.disabled = false;
+          passInput.disabled = false;
+        }
+      }
+
+      checkLockout();
+
+      // Submit Form Login
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        errorAlert.style.display = 'none';
+
+        const username = userInput.value;
+        const password = passInput.value;
+
+        // Tampilkan loading animation
+        btnText.textContent = 'Memverifikasi...';
+        btnSpinner.style.display = 'inline-block';
+        btnSubmit.disabled = true;
+
+        setTimeout(() => {
+          const res = Store.login(username, password);
+
+          btnText.textContent = 'Masuk Sekarang';
+          btnSpinner.style.display = 'none';
+          btnSubmit.disabled = false;
+
+          if (res.success) {
+            window.location.href = 'admin.html';
+          } else {
+            if (res.locked) {
+              checkLockout();
+            } else {
+              errorAlert.textContent = res.message;
+              errorAlert.style.display = 'block';
+            }
+          }
+        }, 500);
+      });
+
+      // Modal Lupa Kata Sandi
+      const forgotModal = document.getElementById('forgotModal');
+      document.getElementById('btnForgotPass').addEventListener('click', (e) => {
+        e.preventDefault();
+        forgotModal.classList.add('active');
+      });
+
+      document.querySelectorAll('.modal-close-btn, .btn-modal-close').forEach(b => {
+        b.addEventListener('click', () => forgotModal.classList.remove('active'));
+      });
+    });
+  </script>
+</body>
+</html>

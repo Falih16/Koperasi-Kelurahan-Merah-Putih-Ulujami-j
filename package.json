@@ -1,0 +1,19 @@
+{
+  "name": "kkmp-ulujami",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website Institusional Koperasi Kelurahan Merah Putih Ulujami - Vercel Ready",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "koperasi",
+    "merah-putih",
+    "ulujami",
+    "jakarta-selatan",
+    "umkm",
+    "ekonomi-kerakyatan"
+  ],
+  "author": "Koperasi Kelurahan Merah Putih Ulujami",
+  "license": "MIT"
+}
