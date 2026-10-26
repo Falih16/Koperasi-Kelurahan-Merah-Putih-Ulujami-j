@@ -17,6 +17,7 @@
     AUTH_SESSION: 'kmp_auth_session',
     LOGIN_ATTEMPTS: 'kmp_login_attempts',
     ADMIN_CREDENTIALS: 'kmp_admin_credentials'
+    SUPABASE_CONFIG: 'kmp_supabase_config'
   };
 
   // Default Logo SVG Institusional Merah-Putih Koperasi
@@ -507,6 +508,34 @@
     cleanPhoneWA,
     buildWhatsAppUrl,
     Templates,
+
+    // ==================== SUPABASE CLOUD CONFIG ====================
+    getSupabaseConfig() {
+      const defaultConfig = {
+        url: 'https://ldrpkcokeqadramodafr.supabase.co', 
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcnBrY29rZXFhZHJhbW9kYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMDE4NzIsImV4cCI6MjEwODU3Nzg3Mn0.VHvlNBI5xTSCL0Hdppyqf6s-NUDskLuyEdUM8LM0qgo,
+        isEnabled: true
+      };
+
+      try {
+        const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
+        if (!raw) return defaultConfig;
+        const parsed = JSON.parse(raw);
+        // Tetap prioritaskan defaultConfig jika localStorage di browser masih kosong
+        return {
+          url: parsed.url || defaultConfig.url,
+          anonKey: parsed.anonKey || defaultConfig.anonKey,
+          isEnabled: parsed.isEnabled !== undefined ? parsed.isEnabled : defaultConfig.isEnabled
+        };
+      } catch (e) {
+        return defaultConfig;
+      }
+    },
+
+    saveSupabaseConfig(config) {
+      localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(config));
+      return config;
+    },
 
     // Inisialisasi & Benih Data Awal jika kosong
     init() {
