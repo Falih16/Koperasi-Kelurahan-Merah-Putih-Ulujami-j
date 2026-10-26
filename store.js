@@ -1,5 +1,5 @@
 /**
- * store.js - Pusat Data Persisten (localStorage), Autentikasi, dan Helper WhatsApp
+ * store.js - Pusat Data Persisten (Hybrid: LocalStorage & Supabase Cloud PostgreSQL)
  * Koperasi Kelurahan Merah Putih Ulujami
  */
 
@@ -16,9 +16,124 @@
     REGISTRATIONS: 'kmp_registrations',
     AUTH_SESSION: 'kmp_auth_session',
     LOGIN_ATTEMPTS: 'kmp_login_attempts',
-    ADMIN_CREDENTIALS: 'kmp_admin_credentials'
+    ADMIN_CREDENTIALS: 'kmp_admin_credentials',
     SUPABASE_CONFIG: 'kmp_supabase_config'
   };
+
+  // Skrip SQL Lengkap Siap Pakai untuk Supabase SQL Editor
+  const SUPABASE_SQL_SCHEMA = `-- SKRIP SKEMA DATABASE KOPERASI MERAH PUTIH ULUJAMI (SUPABASE POSTGRESQL)
+
+-- 1. Tabel Profil Koperasi
+CREATE TABLE IF NOT EXISTS kmp_profile (
+  id INT PRIMARY KEY DEFAULT 1,
+  name TEXT NOT NULL,
+  short_name TEXT NOT NULL,
+  tagline TEXT,
+  legal_badge TEXT,
+  decree_date TEXT,
+  address TEXT,
+  phone TEXT,
+  whatsapp TEXT,
+  email TEXT,
+  operational_hours TEXT,
+  maps_embed TEXT,
+  logo_url TEXT,
+  logo_scale_desktop INT DEFAULT 48,
+  logo_scale_mobile INT DEFAULT 38,
+  stats JSONB,
+  mission JSONB,
+  values JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Tabel Kategori Produk
+CREATE TABLE IF NOT EXISTS kmp_categories (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL
+);
+
+-- 3. Tabel Unit Usaha Mandiri
+CREATE TABLE IF NOT EXISTS kmp_business_units (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT,
+  pic TEXT,
+  hours TEXT,
+  contact TEXT,
+  description TEXT,
+  features JSONB,
+  icon TEXT,
+  image TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Tabel Katalog Produk
+CREATE TABLE IF NOT EXISTS kmp_products (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT,
+  unit_id TEXT,
+  price INT NOT NULL,
+  stock INT DEFAULT 0,
+  description TEXT,
+  image TEXT,
+  featured BOOLEAN DEFAULT FALSE,
+  is_published BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Tabel Struktur Pengurus
+CREATE TABLE IF NOT EXISTS kmp_board_members (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  position TEXT NOT NULL,
+  period TEXT DEFAULT '2024 – 2027',
+  display_order INT DEFAULT 1,
+  bio TEXT,
+  photo TEXT
+);
+
+-- 6. Tabel Pendaftaran Anggota Warga (Privasi Tinggi)
+CREATE TABLE IF NOT EXISTS kmp_registrations (
+  id TEXT PRIMARY KEY,
+  ref_code TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  rtrw TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  date TEXT,
+  status TEXT DEFAULT 'Menunggu Verifikasi',
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Aktifkan Row Level Security (RLS) & Berikan Akses Aman untuk Frontend
+ALTER TABLE kmp_profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kmp_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kmp_business_units ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kmp_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kmp_board_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kmp_registrations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Publik Akses Profil" ON kmp_profile;
+CREATE POLICY "Publik Akses Profil" ON kmp_profile FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Publik Akses Kategori" ON kmp_categories;
+CREATE POLICY "Publik Akses Kategori" ON kmp_categories FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Publik Akses Unit" ON kmp_business_units;
+CREATE POLICY "Publik Akses Unit" ON kmp_business_units FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Publik Akses Produk" ON kmp_products;
+CREATE POLICY "Publik Akses Produk" ON kmp_products FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Publik Akses Pengurus" ON kmp_board_members;
+CREATE POLICY "Publik Akses Pengurus" ON kmp_board_members FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Publik Akses Registrasi" ON kmp_registrations;
+CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true) WITH CHECK (true);
+`;
 
   // Default Logo SVG Institusional Merah-Putih Koperasi
   const DEFAULT_LOGO_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -35,22 +150,18 @@
           <stop offset="100%" stop-color="#FF8F00" />
         </linearGradient>
       </defs>
-      <!-- Perisai Lingkaran Luar -->
       <circle cx="100" cy="100" r="92" fill="url(#bgGrad)" stroke="#FFD54F" stroke-width="4"/>
       <circle cx="100" cy="100" r="82" fill="none" stroke="#FFFFFF" stroke-opacity="0.3" stroke-width="1.5" stroke-dasharray="4,3"/>
       
-      <!-- Bendera Merah Putih Pita Melengkung -->
       <path d="M 50 145 C 80 165, 120 165, 150 145 L 146 135 C 120 152, 80 152, 54 135 Z" fill="#FFFFFF" opacity="0.95"/>
       <path d="M 50 145 C 80 165, 120 165, 150 145 L 148 152 C 120 172, 80 172, 52 152 Z" fill="#8F1722"/>
 
-      <!-- Roda Gigi Koperasi (Gotong Royong & Industri) -->
       <g fill="#FFE082" opacity="0.95">
         <circle cx="100" cy="85" r="30" fill="none" stroke="#FFE082" stroke-width="6"/>
         <circle cx="100" cy="85" r="16" fill="#8F1722"/>
         <path d="M 97 48 h 6 v 8 h -6 z M 97 114 h 6 v 8 h -6 z M 63 82 h 8 v 6 h -8 z M 129 82 h 8 v 6 h -8 z M 75 60 l 5 5 l -4 4 l -5 -5 z M 121 106 l 5 5 l -4 4 l -5 -5 z M 125 64 l -5 5 l -4 -4 l 5 -5 z M 79 110 l -5 5 l -4 -4 l 5 -5 z"/>
       </g>
 
-      <!-- Tangkai Padi & Kapas (Kesejahteraan & Keadilan) -->
       <path d="M 52 95 C 48 70, 68 52, 85 45" fill="none" stroke="#FFE082" stroke-width="3" stroke-linecap="round"/>
       <circle cx="56" cy="85" r="3.5" fill="#FFE082"/>
       <circle cx="62" cy="72" r="3.5" fill="#FFE082"/>
@@ -63,10 +174,8 @@
       <circle cx="128" cy="58" r="3.5" fill="#FFFFFF"/>
       <circle cx="115" cy="46" r="3.5" fill="#FFFFFF"/>
 
-      <!-- Bintang Emas Pusat -->
       <polygon points="100,68 104,78 115,79 107,86 109,96 100,90 91,96 93,86 85,79 96,78" fill="url(#goldGrad)" stroke="#B78103" stroke-width="0.8"/>
 
-      <!-- Teks Tulisan Institusi -->
       <text x="100" y="172" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="10.5" fill="#FFFFFF" letter-spacing="1">KOPERASI MERAH PUTIH</text>
       <text x="100" y="185" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-weight="700" font-size="8.5" fill="#FFD54F" letter-spacing="1.5">KELURAHAN ULUJAMI</text>
     </svg>
@@ -428,7 +537,6 @@
 
   // Helper Template Pesan WhatsApp
   const Templates = {
-    // 1. Pesan Pemesanan Produk oleh Warga
     productOrder(product, qty, buyerName, buyerAddress, note) {
       const total = (product.price || 0) * (qty || 1);
       return (
@@ -443,11 +551,10 @@
         `• Nama: ${buyerName || '-'}\n` +
         `• Alamat/Domisili: ${buyerAddress || '-'}\n` +
         (note ? `• Catatan Khusus: ${note}\n` : '') +
-        `\nMohon informasi ketersediaan stok dan konfirmasi nomor rekening/pembayaran di tempat. Terima kasih!`
+        `\nMohon informasi ketersediaan stok dan konfirmasi total pembayaran. Terima kasih!`
       );
     },
 
-    // 2. Pesan Pendaftaran Anggota Baru Warga
     memberRegistration(regData) {
       return (
         `*PENDAFTARAN ANGGOTA BARU*\n` +
@@ -464,7 +571,6 @@
       );
     },
 
-    // 3. Empat Template Follow-up Pengurus Dashboard
     adminFollowUps: {
       inviteVerification(applicant) {
         return (
@@ -499,9 +605,12 @@
     }
   };
 
-  // OBJEK UTAMA STORE
+  // OBJEK UTAMA STORE (HYBRID: LOCAL + SUPABASE)
+  let _supabaseInstance = null;
+
   const Store = {
     DEFAULT_LOGO_SVG,
+    SUPABASE_SQL_SCHEMA,
     sanitize,
     formatRupiah,
     generateRefCode,
@@ -509,24 +618,7 @@
     buildWhatsAppUrl,
     Templates,
 
-    // ==================== SUPABASE CLOUD CONFIG ====================
-  getSupabaseConfig() {
-    try {
-      const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
-      return raw ? JSON.parse(raw) : { 
-        url: 'https://ldrpkcokeqadramodafr.supabase.co, 
-        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcnBrY29rZXFhZHJhbW9kYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMDE4NzIsImV4cCI6MjEwODU3Nzg3Mn0.VHvlNBI5xTSCL0Hdppyqf6s-NUDskLuyEdUM8LM0qgo', 
-        isEnabled: true 
-      };
-    } catch (e) {
-      return { 
-        url: 'https://xyzabcdefghijklmnop.supabase.co', 
-        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', 
-        isEnabled: true 
-      };
-    }
-  }
-    // Inisialisasi & Benih Data Awal jika kosong
+    // Inisialisasi awal
     init() {
       if (!localStorage.getItem(KEYS.PROFILE)) {
         localStorage.setItem(KEYS.PROFILE, JSON.stringify(SEED_PROFILE));
@@ -551,6 +643,320 @@
           username: 'admin',
           password: 'admin123'
         }));
+      }
+
+      // Siapkan Supabase jika konfigurasi tersedia
+      this.initSupabase();
+
+      // Sinkronkan data dari cloud di latar belakang jika online
+      if (this.isCloudEnabled()) {
+        this.syncFromSupabase().catch(err => {
+          console.warn('[Supabase] Sinkronisasi awal tertunda:', err);
+        });
+      }
+    },
+
+    // ==================== INTEGRASI SUPABASE ====================
+    getSupabaseConfig() {
+      const DEFAULT_CONFIG = {
+        url: 'https://ldrpkcokeqadramodafr.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcnBrY29rZXFhZHJhbW9kYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMDE4NzIsImV4cCI6MjEwODU3Nzg3Mn0.VHvlNBI5xTSCL0Hdppyqf6s-NUDskLuyEdUM8LM0qgo',
+        isEnabled: true
+      };
+
+      try {
+        const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
+        if (!raw) return DEFAULT_CONFIG;
+        const parsed = JSON.parse(raw);
+        return {
+          url: parsed.url || DEFAULT_CONFIG.url,
+          anonKey: parsed.anonKey || DEFAULT_CONFIG.anonKey,
+          isEnabled: parsed.isEnabled !== undefined ? parsed.isEnabled : DEFAULT_CONFIG.isEnabled
+        };
+      } catch (e) {
+        return DEFAULT_CONFIG;
+      }
+    },
+
+    saveSupabaseConfig(config) {
+      localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(config));
+      _supabaseInstance = null;
+      this.initSupabase();
+      return config;
+    },
+
+    isCloudEnabled() {
+      const cfg = this.getSupabaseConfig();
+      return !!(cfg && cfg.isEnabled && cfg.url && cfg.anonKey && window.supabase);
+    },
+
+    initSupabase() {
+      const cfg = this.getSupabaseConfig();
+      if (cfg && cfg.url && cfg.anonKey && window.supabase) {
+        try {
+          _supabaseInstance = window.supabase.createClient(cfg.url, cfg.anonKey);
+          return _supabaseInstance;
+        } catch (e) {
+          console.error('[Supabase Init Error]:', e);
+          _supabaseInstance = null;
+          return null;
+        }
+      }
+      _supabaseInstance = null;
+      return null;
+    },
+
+    getSupabaseClient() {
+      if (!_supabaseInstance) {
+        this.initSupabase();
+      }
+      return _supabaseInstance;
+    },
+
+    // Uji Koneksi Langsung ke Supabase
+    async testSupabaseConnection() {
+      const client = this.getSupabaseClient();
+      if (!client) {
+        return {
+          success: false,
+          message: 'URL atau Anon Key Supabase belum diisi atau pustaka Supabase belum termuat.'
+        };
+      }
+      try {
+        const { data, error } = await client.from('kmp_profile').select('id, name').limit(1);
+        if (error) {
+          return {
+            success: false,
+            message: `Gagal query: ${error.message}. Pastikan skema tabel sudah dijalankan di SQL Editor.`
+          };
+        }
+        return {
+          success: true,
+          message: 'Koneksi ke Supabase PostgreSQL Berhasil! Database Cloud Aktif & Siap Digunakan.',
+          data
+        };
+      } catch (err) {
+        return {
+          success: false,
+          message: `Koneksi gagal: ${err.message}`
+        };
+      }
+    },
+
+    // 🚀 Ekspor / Unggah Semua Data Lokal ke Supabase (1-Click Cloud Seed)
+    async exportAllToSupabase() {
+      const client = this.getSupabaseClient();
+      if (!client) throw new Error('Supabase belum terhubung.');
+
+      const profile = this.getProfile();
+      const categories = this.getCategories();
+      const units = this.getUnits();
+      const products = this.getProducts();
+      const board = this.getBoard();
+      const registrations = this.getRegistrations();
+
+      // 1. Profil
+      await client.from('kmp_profile').upsert({
+        id: 1,
+        name: profile.name,
+        short_name: profile.shortName,
+        tagline: profile.tagline,
+        legal_badge: profile.legalBadge,
+        decree_date: profile.decreeDate || '',
+        address: profile.address,
+        phone: profile.phone,
+        whatsapp: profile.whatsapp,
+        email: profile.email,
+        operational_hours: profile.operationalHours,
+        maps_embed: profile.mapsEmbed || '',
+        logo_url: profile.logoUrl || '',
+        logo_scale_desktop: profile.logoScaleDesktop || 48,
+        logo_scale_mobile: profile.logoScaleMobile || 38,
+        stats: profile.stats || {},
+        mission: profile.mission || [],
+        values: profile.values || []
+      });
+
+      // 2. Kategori
+      if (categories.length > 0) {
+        await client.from('kmp_categories').upsert(categories.map(c => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug
+        })));
+      }
+
+      // 3. Unit Usaha
+      if (units.length > 0) {
+        await client.from('kmp_business_units').upsert(units.map(u => ({
+          id: u.id,
+          name: u.name,
+          category: u.category,
+          pic: u.pic,
+          hours: u.hours,
+          contact: u.contact,
+          description: u.description,
+          features: u.features || [],
+          icon: u.icon || 'storefront',
+          image: u.image
+        })));
+      }
+
+      // 4. Produk
+      if (products.length > 0) {
+        await client.from('kmp_products').upsert(products.map(p => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          unit_id: p.unitId,
+          price: p.price,
+          stock: p.stock,
+          description: p.description,
+          image: p.image,
+          featured: !!p.featured,
+          is_published: p.isPublished !== false
+        })));
+      }
+
+      // 5. Pengurus
+      if (board.length > 0) {
+        await client.from('kmp_board_members').upsert(board.map(b => ({
+          id: b.id,
+          name: b.name,
+          position: b.position,
+          period: b.period,
+          display_order: b.order || 1,
+          bio: b.bio,
+          photo: b.photo
+        })));
+      }
+
+      // 6. Registrasi
+      if (registrations.length > 0) {
+        await client.from('kmp_registrations').upsert(registrations.map(r => ({
+          id: r.id,
+          ref_code: r.refCode,
+          full_name: r.fullName,
+          phone: r.phone,
+          rtrw: r.rtrw,
+          reason: r.reason,
+          date: r.date,
+          status: r.status,
+          notes: r.notes || ''
+        })));
+      }
+
+      return { success: true };
+    },
+
+    // 📥 Tarik Data dari Cloud ke Lokal
+    async syncFromSupabase() {
+      const client = this.getSupabaseClient();
+      if (!client) return false;
+
+      try {
+        const [pRes, cRes, uRes, prRes, bRes, rRes] = await Promise.all([
+          client.from('kmp_profile').select('*').limit(1),
+          client.from('kmp_categories').select('*'),
+          client.from('kmp_business_units').select('*'),
+          client.from('kmp_products').select('*'),
+          client.from('kmp_board_members').select('*').order('display_order', { ascending: true }),
+          client.from('kmp_registrations').select('*').order('created_at', { ascending: false })
+        ]);
+
+        if (pRes.data && pRes.data.length > 0) {
+          const row = pRes.data[0];
+          const prof = {
+            name: row.name,
+            shortName: row.short_name,
+            tagline: row.tagline,
+            legalBadge: row.legal_badge,
+            decreeDate: row.decree_date,
+            address: row.address,
+            phone: row.phone,
+            whatsapp: row.whatsapp,
+            email: row.email,
+            operationalHours: row.operational_hours,
+            mapsEmbed: row.maps_embed,
+            logoUrl: row.logo_url,
+            logoScaleDesktop: row.logo_scale_desktop,
+            logoScaleMobile: row.logo_scale_mobile,
+            stats: row.stats,
+            mission: row.mission,
+            values: row.values
+          };
+          localStorage.setItem(KEYS.PROFILE, JSON.stringify(prof));
+        }
+
+        if (cRes.data && cRes.data.length > 0) {
+          localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cRes.data));
+        }
+
+        if (uRes.data && uRes.data.length > 0) {
+          const mappedUnits = uRes.data.map(u => ({
+            id: u.id,
+            name: u.name,
+            category: u.category,
+            pic: u.pic,
+            hours: u.hours,
+            contact: u.contact,
+            description: u.description,
+            features: u.features,
+            icon: u.icon,
+            image: u.image
+          }));
+          localStorage.setItem(KEYS.UNITS, JSON.stringify(mappedUnits));
+        }
+
+        if (prRes.data && prRes.data.length > 0) {
+          const mappedProducts = prRes.data.map(p => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            unitId: p.unit_id,
+            price: p.price,
+            stock: p.stock,
+            description: p.description,
+            image: p.image,
+            featured: p.featured,
+            isPublished: p.is_published
+          }));
+          localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(mappedProducts));
+        }
+
+        if (bRes.data && bRes.data.length > 0) {
+          const mappedBoard = bRes.data.map(b => ({
+            id: b.id,
+            name: b.name,
+            position: b.position,
+            period: b.period,
+            order: b.display_order,
+            bio: b.bio,
+            photo: b.photo
+          }));
+          localStorage.setItem(KEYS.BOARD, JSON.stringify(mappedBoard));
+        }
+
+        if (rRes.data && rRes.data.length > 0) {
+          const mappedRegs = rRes.data.map(r => ({
+            id: r.id,
+            refCode: r.ref_code,
+            fullName: r.full_name,
+            phone: r.phone,
+            rtrw: r.rtrw,
+            reason: r.reason,
+            date: r.date,
+            status: r.status,
+            notes: r.notes
+          }));
+          localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(mappedRegs));
+        }
+
+        window.dispatchEvent(new CustomEvent('kmp_data_synced'));
+        return true;
+      } catch (err) {
+        console.warn('[Supabase Sync Error]:', err);
+        return false;
       }
     },
 
@@ -582,6 +988,28 @@
       const current = this.getProfile();
       const updated = { ...current, ...profileData };
       localStorage.setItem(KEYS.PROFILE, JSON.stringify(updated));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_profile').upsert({
+          id: 1,
+          name: updated.name,
+          short_name: updated.shortName,
+          tagline: updated.tagline,
+          legal_badge: updated.legalBadge,
+          address: updated.address,
+          phone: updated.phone,
+          whatsapp: updated.whatsapp,
+          email: updated.email,
+          operational_hours: updated.operationalHours,
+          logo_url: updated.logoUrl,
+          logo_scale_desktop: updated.logoScaleDesktop,
+          logo_scale_mobile: updated.logoScaleMobile
+        }).then(({ error }) => {
+          if (error) console.error('[Supabase Save Profile Error]:', error);
+        });
+      }
+
       return updated;
     },
 
@@ -597,18 +1025,28 @@
 
     saveCategory(cat) {
       const cats = this.getCategories();
+      let target;
       if (cat.id) {
         const idx = cats.findIndex(c => c.id === cat.id);
-        if (idx >= 0) cats[idx] = { ...cats[idx], ...cat };
+        if (idx >= 0) {
+          cats[idx] = { ...cats[idx], ...cat };
+          target = cats[idx];
+        }
       } else {
-        const newCat = {
+        target = {
           id: 'cat-' + Date.now(),
           name: cat.name,
           slug: (cat.slug || cat.name).toLowerCase().replace(/[^a-z0-9]/g, '-')
         };
-        cats.push(newCat);
+        cats.push(target);
       }
       localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cats));
+
+      const client = this.getSupabaseClient();
+      if (client && target && this.isCloudEnabled()) {
+        client.from('kmp_categories').upsert(target).catch(err => console.error(err));
+      }
+
       return cats;
     },
 
@@ -616,6 +1054,12 @@
       let cats = this.getCategories();
       cats = cats.filter(c => c.id !== id);
       localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cats));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_categories').delete().eq('id', id).catch(err => console.error(err));
+      }
+
       return cats;
     },
 
@@ -645,6 +1089,23 @@
         units.push(unit);
       }
       localStorage.setItem(KEYS.UNITS, JSON.stringify(units));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_business_units').upsert({
+          id: unit.id,
+          name: unit.name,
+          category: unit.category,
+          pic: unit.pic,
+          hours: unit.hours,
+          contact: unit.contact,
+          description: unit.description,
+          features: unit.features,
+          icon: unit.icon || 'storefront',
+          image: unit.image
+        }).catch(err => console.error(err));
+      }
+
       return units;
     },
 
@@ -652,6 +1113,12 @@
       let units = this.getUnits();
       units = units.filter(u => u.id !== id);
       localStorage.setItem(KEYS.UNITS, JSON.stringify(units));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_business_units').delete().eq('id', id).catch(err => console.error(err));
+      }
+
       return units;
     },
 
@@ -681,6 +1148,23 @@
         prods.unshift(prod);
       }
       localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(prods));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_products').upsert({
+          id: prod.id,
+          name: prod.name,
+          category: prod.category,
+          unit_id: prod.unitId,
+          price: prod.price,
+          stock: prod.stock,
+          description: prod.description,
+          image: prod.image,
+          featured: !!prod.featured,
+          is_published: prod.isPublished !== false
+        }).catch(err => console.error(err));
+      }
+
       return prods;
     },
 
@@ -688,6 +1172,12 @@
       let prods = this.getProducts();
       prods = prods.filter(p => p.id !== id);
       localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(prods));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_products').delete().eq('id', id).catch(err => console.error(err));
+      }
+
       return prods;
     },
 
@@ -714,6 +1204,20 @@
         list.push(member);
       }
       localStorage.setItem(KEYS.BOARD, JSON.stringify(list));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_board_members').upsert({
+          id: member.id,
+          name: member.name,
+          position: member.position,
+          period: member.period,
+          display_order: member.order,
+          bio: member.bio,
+          photo: member.photo
+        }).catch(err => console.error(err));
+      }
+
       return list;
     },
 
@@ -721,6 +1225,12 @@
       let list = this.getBoard();
       list = list.filter(m => m.id !== id);
       localStorage.setItem(KEYS.BOARD, JSON.stringify(list));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_board_members').delete().eq('id', id).catch(err => console.error(err));
+      }
+
       return list;
     },
 
@@ -758,6 +1268,22 @@
 
       list.unshift(newReg);
       localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(list));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_registrations').insert({
+          id: newReg.id,
+          ref_code: newReg.refCode,
+          full_name: newReg.fullName,
+          phone: newReg.phone,
+          rtrw: newReg.rtrw,
+          reason: newReg.reason,
+          date: newReg.date,
+          status: newReg.status,
+          notes: newReg.notes
+        }).catch(err => console.error('[Supabase Registration Insert Error]:', err));
+      }
+
       return newReg;
     },
 
@@ -767,6 +1293,15 @@
       if (idx >= 0) {
         list[idx] = { ...list[idx], ...updateData };
         localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(list));
+
+        const client = this.getSupabaseClient();
+        if (client && this.isCloudEnabled()) {
+          const payload = {};
+          if (updateData.status) payload.status = updateData.status;
+          if (updateData.notes !== undefined) payload.notes = updateData.notes;
+          client.from('kmp_registrations').update(payload).eq('id', id).catch(err => console.error(err));
+        }
+
         return list[idx];
       }
       return null;
@@ -776,6 +1311,12 @@
       let list = this.getRegistrations();
       list = list.filter(r => r.id !== id);
       localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(list));
+
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
+        client.from('kmp_registrations').delete().eq('id', id).catch(err => console.error(err));
+      }
+
       return list;
     },
 
@@ -791,7 +1332,6 @@
           return { attempts: data.attempts, isLocked: true, remainingSeconds: remaining };
         }
         if (data.lockedUntil && data.lockedUntil <= now) {
-          // Reset lock setelah lewat waktu
           this.resetFailedAttempts();
           return { attempts: 0, isLocked: false, remainingSeconds: 0 };
         }
@@ -806,7 +1346,6 @@
       let attempts = status.attempts + 1;
       let lockedUntil = null;
       if (attempts >= 5) {
-        // Kunci selama 30 detik
         lockedUntil = Date.now() + 30000;
       }
       const state = { attempts, lockedUntil };
