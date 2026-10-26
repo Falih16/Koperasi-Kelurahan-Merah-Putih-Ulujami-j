@@ -535,6 +535,21 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
     return `https://wa.me/${cleanNum}?text=${encoded}`;
   }
 
+  // Helper Validasi Kredensial URL & Key Supabase
+  function isValidHttpUrl(str) {
+    if (!str || typeof str !== 'string') return false;
+    try {
+      const url = new URL(str.trim());
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function isValidAnonKey(key) {
+    return typeof key === 'string' && key.trim().length >= 20;
+  }
+
   // Helper Template Pesan WhatsApp
   const Templates = {
     productOrder(product, qty, buyerName, buyerAddress, note) {
@@ -607,6 +622,7 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
   // OBJEK UTAMA STORE (HYBRID: LOCAL + SUPABASE)
   let _supabaseInstance = null;
+  let _syncPromise = null;
 
   const Store = {
     DEFAULT_LOGO_SVG,
@@ -616,10 +632,13 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
     generateRefCode,
     cleanPhoneWA,
     buildWhatsAppUrl,
+    isValidHttpUrl,
+    isValidAnonKey,
     Templates,
 
     // Inisialisasi awal
     init() {
+      // 1. Pastikan cache lokal selalu terisi (0ms instant render)
       if (!localStorage.getItem(KEYS.PROFILE)) {
         localStorage.setItem(KEYS.PROFILE, JSON.stringify(SEED_PROFILE));
       }
@@ -645,13 +664,13 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
         }));
       }
 
-      // Siapkan Supabase jika konfigurasi tersedia
+      // 2. Siapkan Supabase jika konfigurasi tersedia
       this.initSupabase();
 
-      // Sinkronkan data dari cloud di latar belakang jika online
+      // 3. Sinkronkan data dari cloud di latar belakang secara asinkron
       if (this.isCloudEnabled()) {
         this.syncFromSupabase().catch(err => {
-          console.warn('[Supabase] Sinkronisasi awal tertunda:', err);
+          console.warn('[Supabase Hybrid] Sinkronisasi awal berjalan offline/tertunda:', err?.message || err);
         });
       }
     },
@@ -667,11 +686,29 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
       try {
         const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
         if (!raw) return DEFAULT_CONFIG;
+
         const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return DEFAULT_CONFIG;
+
+        // Validasi kelayakan format URL dan panjang string Anon Key
+        const isUrlValid = isValidHttpUrl(parsed.url);
+        const isKeyValid = isValidAnonKey(parsed.anonKey);
+
+        // KASUS 1: Jika data di localStorage kosong (""), invalid, atau dummy lama
+        if (!isUrlValid || !isKeyValid) {
+          localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(DEFAULT_CONFIG));
+          return DEFAULT_CONFIG;
+        }
+
+        // KASUS 2: Jika data di localStorage berasal dari project default tetapi isEnabled
+        // tersisa false dari sesi dev/testing sebelumnya, otomatis pulihkan isEnabled menjadi true!
+        const isDefaultProject = parsed.url.trim().toLowerCase() === DEFAULT_CONFIG.url.toLowerCase();
+        const isEnabled = isDefaultProject ? true : (parsed.isEnabled !== false);
+
         return {
-          url: parsed.url || DEFAULT_CONFIG.url,
-          anonKey: parsed.anonKey || DEFAULT_CONFIG.anonKey,
-          isEnabled: parsed.isEnabled !== undefined ? parsed.isEnabled : DEFAULT_CONFIG.isEnabled
+          url: parsed.url.trim(),
+          anonKey: parsed.anonKey.trim(),
+          isEnabled: isEnabled
         };
       } catch (e) {
         return DEFAULT_CONFIG;
@@ -687,17 +724,22 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
     isCloudEnabled() {
       const cfg = this.getSupabaseConfig();
-      return !!(cfg && cfg.isEnabled && cfg.url && cfg.anonKey && window.supabase);
+      return !!(cfg && cfg.isEnabled && isValidHttpUrl(cfg.url) && isValidAnonKey(cfg.anonKey) && window.supabase);
     },
 
     initSupabase() {
       const cfg = this.getSupabaseConfig();
-      if (cfg && cfg.url && cfg.anonKey && window.supabase) {
+      if (cfg && cfg.isEnabled && isValidHttpUrl(cfg.url) && isValidAnonKey(cfg.anonKey) && window.supabase) {
         try {
-          _supabaseInstance = window.supabase.createClient(cfg.url, cfg.anonKey);
+          if (!_supabaseInstance) {
+            _supabaseInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
+              auth: { persistSession: false },
+              realtime: { params: { eventsPerSecond: 10 } }
+            });
+          }
           return _supabaseInstance;
         } catch (e) {
-          console.error('[Supabase Init Error]:', e);
+          console.warn('[Supabase Init Warning]:', e?.message || e);
           _supabaseInstance = null;
           return null;
         }
@@ -849,115 +891,135 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
       return { success: true };
     },
 
-    // 📥 Tarik Data dari Cloud ke Lokal
+    // 📥 Tarik Data dari Cloud ke Lokal (Thread-Safe Mutex & Race Condition Guard)
     async syncFromSupabase() {
+      if (_syncPromise) return _syncPromise;
+
       const client = this.getSupabaseClient();
       if (!client) return false;
 
-      try {
-        const [pRes, cRes, uRes, prRes, bRes, rRes] = await Promise.all([
-          client.from('kmp_profile').select('*').limit(1),
-          client.from('kmp_categories').select('*'),
-          client.from('kmp_business_units').select('*'),
-          client.from('kmp_products').select('*'),
-          client.from('kmp_board_members').select('*').order('display_order', { ascending: true }),
-          client.from('kmp_registrations').select('*').order('created_at', { ascending: false })
-        ]);
+      _syncPromise = (async () => {
+        try {
+          const [pRes, cRes, uRes, prRes, bRes, rRes] = await Promise.all([
+            client.from('kmp_profile').select('*').limit(1),
+            client.from('kmp_categories').select('*'),
+            client.from('kmp_business_units').select('*'),
+            client.from('kmp_products').select('*'),
+            client.from('kmp_board_members').select('*').order('display_order', { ascending: true }),
+            client.from('kmp_registrations').select('*').order('created_at', { ascending: false })
+          ]);
 
-        if (pRes.data && pRes.data.length > 0) {
-          const row = pRes.data[0];
-          const prof = {
-            name: row.name,
-            shortName: row.short_name,
-            tagline: row.tagline,
-            legalBadge: row.legal_badge,
-            decreeDate: row.decree_date,
-            address: row.address,
-            phone: row.phone,
-            whatsapp: row.whatsapp,
-            email: row.email,
-            operationalHours: row.operational_hours,
-            mapsEmbed: row.maps_embed,
-            logoUrl: row.logo_url,
-            logoScaleDesktop: row.logo_scale_desktop,
-            logoScaleMobile: row.logo_scale_mobile,
-            stats: row.stats,
-            mission: row.mission,
-            values: row.values
-          };
-          localStorage.setItem(KEYS.PROFILE, JSON.stringify(prof));
+          let hasUpdated = false;
+
+          if (pRes.data && pRes.data.length > 0) {
+            const row = pRes.data[0];
+            const prof = {
+              name: row.name,
+              shortName: row.short_name,
+              tagline: row.tagline,
+              legalBadge: row.legal_badge,
+              decreeDate: row.decree_date,
+              address: row.address,
+              phone: row.phone,
+              whatsapp: row.whatsapp,
+              email: row.email,
+              operationalHours: row.operational_hours,
+              mapsEmbed: row.maps_embed,
+              logoUrl: row.logo_url,
+              logoScaleDesktop: row.logo_scale_desktop,
+              logoScaleMobile: row.logo_scale_mobile,
+              stats: row.stats,
+              mission: row.mission,
+              values: row.values
+            };
+            localStorage.setItem(KEYS.PROFILE, JSON.stringify(prof));
+            hasUpdated = true;
+          }
+
+          if (cRes.data && cRes.data.length > 0) {
+            localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cRes.data));
+            hasUpdated = true;
+          }
+
+          if (uRes.data && uRes.data.length > 0) {
+            const mappedUnits = uRes.data.map(u => ({
+              id: u.id,
+              name: u.name,
+              category: u.category,
+              pic: u.pic,
+              hours: u.hours,
+              contact: u.contact,
+              description: u.description,
+              features: u.features,
+              icon: u.icon,
+              image: u.image
+            }));
+            localStorage.setItem(KEYS.UNITS, JSON.stringify(mappedUnits));
+            hasUpdated = true;
+          }
+
+          if (prRes.data && prRes.data.length > 0) {
+            const mappedProducts = prRes.data.map(p => ({
+              id: p.id,
+              name: p.name,
+              category: p.category,
+              unitId: p.unit_id,
+              price: p.price,
+              stock: p.stock,
+              description: p.description,
+              image: p.image,
+              featured: p.featured,
+              isPublished: p.is_published
+            }));
+            localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(mappedProducts));
+            hasUpdated = true;
+          }
+
+          if (bRes.data && bRes.data.length > 0) {
+            const mappedBoard = bRes.data.map(b => ({
+              id: b.id,
+              name: b.name,
+              position: b.position,
+              period: b.period,
+              order: b.display_order,
+              bio: b.bio,
+              photo: b.photo
+            }));
+            localStorage.setItem(KEYS.BOARD, JSON.stringify(mappedBoard));
+            hasUpdated = true;
+          }
+
+          if (rRes.data && rRes.data.length > 0) {
+            const mappedRegs = rRes.data.map(r => ({
+              id: r.id,
+              refCode: r.ref_code,
+              fullName: r.full_name,
+              phone: r.phone,
+              rtrw: r.rtrw,
+              reason: r.reason,
+              date: r.date,
+              status: r.status,
+              notes: r.notes
+            }));
+            localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(mappedRegs));
+            hasUpdated = true;
+          }
+
+          if (hasUpdated) {
+            window.dispatchEvent(new CustomEvent('kmp_data_synced', {
+              detail: { timestamp: Date.now() }
+            }));
+          }
+          return true;
+        } catch (err) {
+          console.warn('[Supabase Sync Error]:', err?.message || err);
+          return false;
+        } finally {
+          _syncPromise = null;
         }
+      })();
 
-        if (cRes.data && cRes.data.length > 0) {
-          localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cRes.data));
-        }
-
-        if (uRes.data && uRes.data.length > 0) {
-          const mappedUnits = uRes.data.map(u => ({
-            id: u.id,
-            name: u.name,
-            category: u.category,
-            pic: u.pic,
-            hours: u.hours,
-            contact: u.contact,
-            description: u.description,
-            features: u.features,
-            icon: u.icon,
-            image: u.image
-          }));
-          localStorage.setItem(KEYS.UNITS, JSON.stringify(mappedUnits));
-        }
-
-        if (prRes.data && prRes.data.length > 0) {
-          const mappedProducts = prRes.data.map(p => ({
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            unitId: p.unit_id,
-            price: p.price,
-            stock: p.stock,
-            description: p.description,
-            image: p.image,
-            featured: p.featured,
-            isPublished: p.is_published
-          }));
-          localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(mappedProducts));
-        }
-
-        if (bRes.data && bRes.data.length > 0) {
-          const mappedBoard = bRes.data.map(b => ({
-            id: b.id,
-            name: b.name,
-            position: b.position,
-            period: b.period,
-            order: b.display_order,
-            bio: b.bio,
-            photo: b.photo
-          }));
-          localStorage.setItem(KEYS.BOARD, JSON.stringify(mappedBoard));
-        }
-
-        if (rRes.data && rRes.data.length > 0) {
-          const mappedRegs = rRes.data.map(r => ({
-            id: r.id,
-            refCode: r.ref_code,
-            fullName: r.full_name,
-            phone: r.phone,
-            rtrw: r.rtrw,
-            reason: r.reason,
-            date: r.date,
-            status: r.status,
-            notes: r.notes
-          }));
-          localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(mappedRegs));
-        }
-
-        window.dispatchEvent(new CustomEvent('kmp_data_synced'));
-        return true;
-      } catch (err) {
-        console.warn('[Supabase Sync Error]:', err);
-        return false;
-      }
+      return _syncPromise;
     },
 
     // Reset Data ke Benih Asli
