@@ -550,6 +550,22 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
     return typeof key === 'string' && key.trim().length >= 20;
   }
 
+  // Helper Eksekusi Query Supabase Aman (Mencegah TypeError PostgrestBuilder thenable .catch)
+  function executeCloudQuery(queryPromise, actionLabel = 'Operasi Cloud') {
+    return Promise.resolve(queryPromise)
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn(`[Supabase ${actionLabel} Error]:`, error.message);
+          return { success: false, error };
+        }
+        return { success: true, data };
+      })
+      .catch((err) => {
+        console.warn(`[Supabase ${actionLabel} Exception]:`, err?.message || err);
+        return { success: false, error: err };
+      });
+  }
+
   // Helper Template Pesan WhatsApp
   const Templates = {
     productOrder(product, qty, buyerName, buyerAddress, note) {
@@ -1053,23 +1069,24 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_profile').upsert({
-          id: 1,
-          name: updated.name,
-          short_name: updated.shortName,
-          tagline: updated.tagline,
-          legal_badge: updated.legalBadge,
-          address: updated.address,
-          phone: updated.phone,
-          whatsapp: updated.whatsapp,
-          email: updated.email,
-          operational_hours: updated.operationalHours,
-          logo_url: updated.logoUrl,
-          logo_scale_desktop: updated.logoScaleDesktop,
-          logo_scale_mobile: updated.logoScaleMobile
-        }).then(({ error }) => {
-          if (error) console.error('[Supabase Save Profile Error]:', error);
-        });
+        executeCloudQuery(
+          client.from('kmp_profile').upsert({
+            id: 1,
+            name: updated.name,
+            short_name: updated.shortName,
+            tagline: updated.tagline,
+            legal_badge: updated.legalBadge,
+            address: updated.address,
+            phone: updated.phone,
+            whatsapp: updated.whatsapp,
+            email: updated.email,
+            operational_hours: updated.operationalHours,
+            logo_url: updated.logoUrl,
+            logo_scale_desktop: updated.logoScaleDesktop,
+            logo_scale_mobile: updated.logoScaleMobile
+          }),
+          'Simpan Profil'
+        );
       }
 
       return updated;
@@ -1106,7 +1123,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && target && this.isCloudEnabled()) {
-        client.from('kmp_categories').upsert(target).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_categories').upsert(target),
+          'Simpan Kategori'
+        );
       }
 
       return cats;
@@ -1119,7 +1139,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_categories').delete().eq('id', id).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_categories').delete().eq('id', id),
+          'Hapus Kategori'
+        );
       }
 
       return cats;
@@ -1154,18 +1177,21 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_business_units').upsert({
-          id: unit.id,
-          name: unit.name,
-          category: unit.category,
-          pic: unit.pic,
-          hours: unit.hours,
-          contact: unit.contact,
-          description: unit.description,
-          features: unit.features,
-          icon: unit.icon || 'storefront',
-          image: unit.image
-        }).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_business_units').upsert({
+            id: unit.id,
+            name: unit.name,
+            category: unit.category,
+            pic: unit.pic,
+            hours: unit.hours,
+            contact: unit.contact,
+            description: unit.description,
+            features: unit.features,
+            icon: unit.icon || 'storefront',
+            image: unit.image
+          }),
+          'Simpan Unit Usaha'
+        );
       }
 
       return units;
@@ -1178,7 +1204,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_business_units').delete().eq('id', id).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_business_units').delete().eq('id', id),
+          'Hapus Unit Usaha'
+        );
       }
 
       return units;
@@ -1213,18 +1242,21 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_products').upsert({
-          id: prod.id,
-          name: prod.name,
-          category: prod.category,
-          unit_id: prod.unitId,
-          price: prod.price,
-          stock: prod.stock,
-          description: prod.description,
-          image: prod.image,
-          featured: !!prod.featured,
-          is_published: prod.isPublished !== false
-        }).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_products').upsert({
+            id: prod.id,
+            name: prod.name,
+            category: prod.category,
+            unit_id: prod.unitId,
+            price: prod.price,
+            stock: prod.stock,
+            description: prod.description,
+            image: prod.image,
+            featured: !!prod.featured,
+            is_published: prod.isPublished !== false
+          }),
+          'Simpan Produk'
+        );
       }
 
       return prods;
@@ -1237,7 +1269,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_products').delete().eq('id', id).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_products').delete().eq('id', id),
+          'Hapus Produk'
+        );
       }
 
       return prods;
@@ -1269,15 +1304,18 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_board_members').upsert({
-          id: member.id,
-          name: member.name,
-          position: member.position,
-          period: member.period,
-          display_order: member.order,
-          bio: member.bio,
-          photo: member.photo
-        }).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_board_members').upsert({
+            id: member.id,
+            name: member.name,
+            position: member.position,
+            period: member.period,
+            display_order: member.order,
+            bio: member.bio,
+            photo: member.photo
+          }),
+          'Simpan Pengurus'
+        );
       }
 
       return list;
@@ -1290,7 +1328,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_board_members').delete().eq('id', id).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_board_members').delete().eq('id', id),
+          'Hapus Pengurus'
+        );
       }
 
       return list;
@@ -1333,17 +1374,20 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_registrations').insert({
-          id: newReg.id,
-          ref_code: newReg.refCode,
-          full_name: newReg.fullName,
-          phone: newReg.phone,
-          rtrw: newReg.rtrw,
-          reason: newReg.reason,
-          date: newReg.date,
-          status: newReg.status,
-          notes: newReg.notes
-        }).catch(err => console.error('[Supabase Registration Insert Error]:', err));
+        executeCloudQuery(
+          client.from('kmp_registrations').insert({
+            id: newReg.id,
+            ref_code: newReg.refCode,
+            full_name: newReg.fullName,
+            phone: newReg.phone,
+            rtrw: newReg.rtrw,
+            reason: newReg.reason,
+            date: newReg.date,
+            status: newReg.status,
+            notes: newReg.notes
+          }),
+          'Tambah Pendaftaran'
+        );
       }
 
       return newReg;
@@ -1361,7 +1405,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
           const payload = {};
           if (updateData.status) payload.status = updateData.status;
           if (updateData.notes !== undefined) payload.notes = updateData.notes;
-          client.from('kmp_registrations').update(payload).eq('id', id).catch(err => console.error(err));
+          executeCloudQuery(
+            client.from('kmp_registrations').update(payload).eq('id', id),
+            'Perbarui Pendaftaran'
+          );
         }
 
         return list[idx];
@@ -1376,7 +1423,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
-        client.from('kmp_registrations').delete().eq('id', id).catch(err => console.error(err));
+        executeCloudQuery(
+          client.from('kmp_registrations').delete().eq('id', id),
+          'Hapus Pendaftaran'
+        );
       }
 
       return list;
