@@ -53,16 +53,12 @@ Proyek ini dibangun menggunakan arsitektur web murni sisi browser (*Client-Side 
 - Kredensial default: `admin` / `admin123`.
 
 ### 5. Dashboard Pengurus Interaktif (`admin.html`)
-Proteksi sesi login aktif dengan 7 modul administrasi:
+Proteksi sesi login aktif dengan 8 modul administrasi:
 1. **Overview KPI**: Kartu metrik total pendaftar, produk, unit, dan tabel notifikasi pendaftar baru yang memerlukan follow-up.
 2. **Tindak Lanjut Pendaftaran WhatsApp**:
    - Pencarian pendaftar dan filter status (`Menunggu Verifikasi`, `Diverifikasi`, `Selesai`, `Ditolak`).
    - Fitur ubah status langsung dan catatan internal pengurus.
-   - Tombol **Follow-up WhatsApp Cepat** dengan modal 4 pilihan template pesan otomatis:
-     - *Konfirmasi & Undangan Verifikasi Dokumen ke Kantor*
-     - *Pengingat Jadwal Kedatangan Verifikasi*
-     - *Pemberitahuan Keanggotaan Aktif & Sah*
-     - *Pesan Informasi Kendala Persyaratan / Klarifikasi*
+   - Tombol **Follow-up WhatsApp Cepat** dengan modal 4 pilihan template pesan otomatis.
 3. **Manajemen Produk**: CRUD produk lengkap dengan unggah foto (Base64 file / URL eksternal) dan penandaan produk unggulan (*featured*).
 4. **Kategori Produk**: CRUD kategori dan sinkronisasi otomatis ke katalog publik.
 5. **Bidang Usaha**: CRUD unit usaha mandiri (penanggung jawab, jam layanan, fasilitas keunggulan).
@@ -70,8 +66,28 @@ Proteksi sesi login aktif dengan 7 modul administrasi:
 7. **Pengaturan Identitas & Logo Koperasi**:
    - Unggah logo kustom (Base64/URL) dengan fitur **Live Preview Simulator** pada Navbar Desktop dan Mobile View secara instan.
    - Slider pengatur skala tinggi logo (Desktop: 30–80px, Mobile: 24–60px).
-   - Edit nama resmi, nama singkat navbar, tagline, nomor SK legalitas, alamat, kontak WhatsApp, dan jam kerja.
-   - Tombol reset "Kembalikan ke Default".
+   - Edit identitas resmi, alamat, kontak WhatsApp, dan jam kerja.
+8. **Integrasi Database Cloud (Supabase PostgreSQL)**:
+   - Panel konfigurasi URL dan Public Anon Key Supabase langsung dari antarmuka web.
+   - Indikator status koneksi (*Online Cloud vs Mode Lokal Offline*).
+   - Tombol **1-Click Migrasi**: Ekspor seluruh data lokal ke cloud Supabase secara otomatis.
+   - Tombol tarik data dari cloud ke peramban.
+   - Tombol salin skrip SQL schema lengkap siap pakai.
+
+---
+
+## ☁️ Integrasi Database Cloud Gratis (Supabase PostgreSQL)
+
+Website ini menerapkan sistem **Hybrid Architecture**:
+- **Bekerja Offline & Cepat (0ms Latency)**: Secara default menggunakan cache `localStorage`.
+- **Tersinkronisasi Real-Time ke Cloud**: Saat Supabase terhubung, setiap perubahan produk, pendaftaran warga, maupun profil koperasi otomatis disinkronkan ke cloud PostgreSQL Supabase gratis.
+
+### Cara Mengaktifkan Database Supabase:
+1. Buat akun & project gratis di [supabase.com](https://supabase.com) (Region: *Singapore*).
+2. Masuk ke menu **SQL Editor**, salin skrip SQL yang telah disediakan di tab **Database Cloud** dashboard admin website ini, lalu klik **Run**.
+3. Ambil **Project URL** dan **Anon Key** dari menu *Project Settings -> API*.
+4. Buka **Dashboard Admin KKMP Ulujami** (`/admin.html`), buka tab **Database Cloud**, masukkan URL & Anon Key, lalu centang **"Aktifkan Sinkronisasi Otomatis"** dan klik **Simpan**.
+5. Klik tombol **"Ekspor Semua Data ke Cloud"** untuk mengunggah seluruh data awal secara instan! Selesai, website Anda kini memiliki database cloud terpusat!
 
 ---
 
