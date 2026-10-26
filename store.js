@@ -510,33 +510,22 @@
     Templates,
 
     // ==================== SUPABASE CLOUD CONFIG ====================
-    getSupabaseConfig() {
-      const defaultConfig = {
-        url: 'https://ldrpkcokeqadramodafr.supabase.co', 
-        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcnBrY29rZXFhZHJhbW9kYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMDE4NzIsImV4cCI6MjEwODU3Nzg3Mn0.VHvlNBI5xTSCL0Hdppyqf6s-NUDskLuyEdUM8LM0qgo,
-        isEnabled: true
+  getSupabaseConfig() {
+    try {
+      const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
+      return raw ? JSON.parse(raw) : { 
+        url: 'https://ldrpkcokeqadramodafr.supabase.co, 
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkcnBrY29rZXFhZHJhbW9kYWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMDE4NzIsImV4cCI6MjEwODU3Nzg3Mn0.VHvlNBI5xTSCL0Hdppyqf6s-NUDskLuyEdUM8LM0qgo', 
+        isEnabled: true 
       };
-
-      try {
-        const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
-        if (!raw) return defaultConfig;
-        const parsed = JSON.parse(raw);
-        // Tetap prioritaskan defaultConfig jika localStorage di browser masih kosong
-        return {
-          url: parsed.url || defaultConfig.url,
-          anonKey: parsed.anonKey || defaultConfig.anonKey,
-          isEnabled: parsed.isEnabled !== undefined ? parsed.isEnabled : defaultConfig.isEnabled
-        };
-      } catch (e) {
-        return defaultConfig;
-      }
-    },
-
-    saveSupabaseConfig(config) {
-      localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(config));
-      return config;
-    },
-
+    } catch (e) {
+      return { 
+        url: 'https://xyzabcdefghijklmnop.supabase.co', 
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', 
+        isEnabled: true 
+      };
+    }
+  }
     // Inisialisasi & Benih Data Awal jika kosong
     init() {
       if (!localStorage.getItem(KEYS.PROFILE)) {
