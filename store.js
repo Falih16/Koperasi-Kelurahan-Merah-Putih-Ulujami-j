@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS kmp_profile (
 CREATE TABLE IF NOT EXISTS kmp_categories (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL
+  slug TEXT NOT NULL
 );
 
 -- 3. Tabel Unit Usaha Mandiri
@@ -68,13 +68,13 @@ CREATE TABLE IF NOT EXISTS kmp_business_units (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Tabel Katalog Produk
+-- 4. Tabel Katalog Produk (unit_id fleksibel nullable tanpa foreign key kaku)
 CREATE TABLE IF NOT EXISTS kmp_products (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   category TEXT,
   unit_id TEXT,
-  price INT NOT NULL,
+  price BIGINT NOT NULL DEFAULT 0,
   stock INT DEFAULT 0,
   description TEXT,
   image TEXT,
@@ -82,6 +82,9 @@ CREATE TABLE IF NOT EXISTS kmp_products (
   is_published BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Lepaskan foreign key unit_id jika sebelumnya pernah dibuat agar tidak memblokir penambahan produk
+ALTER TABLE kmp_products DROP CONSTRAINT IF EXISTS kmp_products_unit_id_fkey;
 
 -- 5. Tabel Struktur Pengurus
 CREATE TABLE IF NOT EXISTS kmp_board_members (
@@ -94,21 +97,27 @@ CREATE TABLE IF NOT EXISTS kmp_board_members (
   photo TEXT
 );
 
--- 6. Tabel Pendaftaran Anggota Warga (Privasi Tinggi)
+-- 6. Tabel Pendaftaran Anggota Warga (Privasi & Integritas Tinggi)
 CREATE TABLE IF NOT EXISTS kmp_registrations (
   id TEXT PRIMARY KEY,
-  ref_code TEXT UNIQUE NOT NULL,
+  ref_code TEXT NOT NULL,
   full_name TEXT NOT NULL,
   phone TEXT NOT NULL,
   rtrw TEXT NOT NULL,
   reason TEXT NOT NULL,
   date TEXT,
   status TEXT DEFAULT 'Menunggu Verifikasi',
-  notes TEXT,
+  notes TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Aktifkan Row Level Security (RLS) & Berikan Akses Aman untuk Frontend
+-- Pastikan kolom penting ada pada tabel yang sudah terbuat sebelumnya
+ALTER TABLE kmp_registrations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+ALTER TABLE kmp_registrations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE kmp_products ADD COLUMN IF NOT EXISTS unit_id TEXT;
+ALTER TABLE kmp_products ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
+
+-- Aktifkan Row Level Security (RLS) & Berikan Akses Publik (Anon & Authenticated)
 ALTER TABLE kmp_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kmp_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kmp_business_units ENABLE ROW LEVEL SECURITY;
@@ -117,22 +126,35 @@ ALTER TABLE kmp_board_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kmp_registrations ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Publik Akses Profil" ON kmp_profile;
-CREATE POLICY "Publik Akses Profil" ON kmp_profile FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Publik Akses Profil" ON kmp_profile FOR ALL TO public USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Publik Akses Kategori" ON kmp_categories;
-CREATE POLICY "Publik Akses Kategori" ON kmp_categories FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Publik Akses Kategori" ON kmp_categories FOR ALL TO public USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Publik Akses Unit" ON kmp_business_units;
-CREATE POLICY "Publik Akses Unit" ON kmp_business_units FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Publik Akses Unit" ON kmp_business_units FOR ALL TO public USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Publik Akses Produk" ON kmp_products;
-CREATE POLICY "Publik Akses Produk" ON kmp_products FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Publik Akses Produk" ON kmp_products FOR ALL TO public USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Publik Akses Pengurus" ON kmp_board_members;
-CREATE POLICY "Publik Akses Pengurus" ON kmp_board_members FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Publik Akses Pengurus" ON kmp_board_members FOR ALL TO public USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Publik Akses Registrasi" ON kmp_registrations;
-CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- Realtime publication untuk notifikasi pendaftaran masuk
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'kmp_registrations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE kmp_registrations;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;
 `;
 
   // Default Logo SVG Institusional Merah-Putih Koperasi
@@ -555,13 +577,19 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
     return Promise.resolve(queryPromise)
       .then(({ data, error }) => {
         if (error) {
-          console.warn(`[Supabase ${actionLabel} Error]:`, error.message);
+          console.error(
+            `[Supabase ${actionLabel} Gagal]:`,
+            error.message || error,
+            '\n• Detail:', error.details || 'Tidak ada detail',
+            '\n• Hint:', error.hint || 'Tidak ada petunjuk',
+            '\n• Objek Error:', error
+          );
           return { success: false, error };
         }
         return { success: true, data };
       })
       .catch((err) => {
-        console.warn(`[Supabase ${actionLabel} Exception]:`, err?.message || err);
+        console.error(`[Supabase ${actionLabel} Eksepsi]:`, err?.message || err, err);
         return { success: false, error: err };
       });
   }
@@ -866,11 +894,11 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
           id: p.id,
           name: p.name,
           category: p.category,
-          unit_id: p.unitId,
-          price: p.price,
-          stock: p.stock,
-          description: p.description,
-          image: p.image,
+          unit_id: (p.unitId && String(p.unitId).trim()) ? String(p.unitId).trim() : null,
+          price: parseInt(p.price, 10) || 0,
+          stock: parseInt(p.stock, 10) || 0,
+          description: p.description || '',
+          image: p.image || '',
           featured: !!p.featured,
           is_published: p.isPublished !== false
         })));
@@ -921,44 +949,72 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
             client.from('kmp_categories').select('*'),
             client.from('kmp_business_units').select('*'),
             client.from('kmp_products').select('*'),
-            client.from('kmp_board_members').select('*').order('display_order', { ascending: true }),
-            client.from('kmp_registrations').select('*').order('created_at', { ascending: false })
+            client.from('kmp_board_members').select('*'),
+            client.from('kmp_registrations').select('*')
           ]);
 
           let hasUpdated = false;
 
+          // Helper Merge Aman: Cloud menimpa data ber-ID sama, tetapi data lokal yang belum ada di cloud tidak terhapus
+          const mergeById = (localItems, cloudItems) => {
+            const map = new Map();
+            (localItems || []).forEach(item => {
+              if (item && item.id) map.set(item.id, item);
+            });
+            (cloudItems || []).forEach(item => {
+              if (item && item.id) {
+                const existing = map.get(item.id) || {};
+                map.set(item.id, { ...existing, ...item });
+              }
+            });
+            return Array.from(map.values());
+          };
+
+          // 1. Profil Koperasi
           if (pRes.data && pRes.data.length > 0) {
             const row = pRes.data[0];
+            const currentProf = this.getProfile();
             const prof = {
-              name: row.name,
-              shortName: row.short_name,
-              tagline: row.tagline,
-              legalBadge: row.legal_badge,
-              decreeDate: row.decree_date,
-              address: row.address,
-              phone: row.phone,
-              whatsapp: row.whatsapp,
-              email: row.email,
-              operationalHours: row.operational_hours,
-              mapsEmbed: row.maps_embed,
-              logoUrl: row.logo_url,
-              logoScaleDesktop: row.logo_scale_desktop,
-              logoScaleMobile: row.logo_scale_mobile,
-              stats: row.stats,
-              mission: row.mission,
-              values: row.values
+              ...currentProf,
+              name: row.name || currentProf.name,
+              shortName: row.short_name || currentProf.shortName,
+              tagline: row.tagline || currentProf.tagline,
+              legalBadge: row.legal_badge || currentProf.legalBadge,
+              decreeDate: row.decree_date || currentProf.decreeDate,
+              address: row.address || currentProf.address,
+              phone: row.phone || currentProf.phone,
+              whatsapp: row.whatsapp || currentProf.whatsapp,
+              email: row.email || currentProf.email,
+              operationalHours: row.operational_hours || currentProf.operationalHours,
+              mapsEmbed: row.maps_embed || currentProf.mapsEmbed,
+              logoUrl: row.logo_url || currentProf.logoUrl,
+              logoScaleDesktop: row.logo_scale_desktop || currentProf.logoScaleDesktop,
+              logoScaleMobile: row.logo_scale_mobile || currentProf.logoScaleMobile,
+              stats: row.stats || currentProf.stats,
+              mission: row.mission || currentProf.mission,
+              values: row.values || currentProf.values
             };
             localStorage.setItem(KEYS.PROFILE, JSON.stringify(prof));
             hasUpdated = true;
           }
 
+          // 2. Kategori Produk
           if (cRes.data && cRes.data.length > 0) {
-            localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cRes.data));
+            const localCats = this.getCategories();
+            const cloudCats = cRes.data.map(c => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug
+            }));
+            const merged = mergeById(localCats, cloudCats);
+            localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(merged));
             hasUpdated = true;
           }
 
+          // 3. Unit Usaha
           if (uRes.data && uRes.data.length > 0) {
-            const mappedUnits = uRes.data.map(u => ({
+            const localUnits = this.getUnits();
+            const cloudUnits = uRes.data.map(u => ({
               id: u.id,
               name: u.name,
               category: u.category,
@@ -970,29 +1026,35 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
               icon: u.icon,
               image: u.image
             }));
-            localStorage.setItem(KEYS.UNITS, JSON.stringify(mappedUnits));
+            const merged = mergeById(localUnits, cloudUnits);
+            localStorage.setItem(KEYS.UNITS, JSON.stringify(merged));
             hasUpdated = true;
           }
 
+          // 4. Produk
           if (prRes.data && prRes.data.length > 0) {
-            const mappedProducts = prRes.data.map(p => ({
+            const localProds = this.getProducts();
+            const cloudProds = prRes.data.map(p => ({
               id: p.id,
               name: p.name,
               category: p.category,
-              unitId: p.unit_id,
-              price: p.price,
-              stock: p.stock,
-              description: p.description,
-              image: p.image,
-              featured: p.featured,
-              isPublished: p.is_published
+              unitId: p.unit_id || '',
+              price: parseInt(p.price, 10) || 0,
+              stock: parseInt(p.stock, 10) || 0,
+              description: p.description || '',
+              image: p.image || '',
+              featured: !!p.featured,
+              isPublished: p.is_published !== false
             }));
-            localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(mappedProducts));
+            const merged = mergeById(localProds, cloudProds);
+            localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(merged));
             hasUpdated = true;
           }
 
+          // 5. Struktur Pengurus
           if (bRes.data && bRes.data.length > 0) {
-            const mappedBoard = bRes.data.map(b => ({
+            const localBoard = this.getBoard();
+            const cloudBoard = bRes.data.map(b => ({
               id: b.id,
               name: b.name,
               position: b.position,
@@ -1001,12 +1063,16 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
               bio: b.bio,
               photo: b.photo
             }));
-            localStorage.setItem(KEYS.BOARD, JSON.stringify(mappedBoard));
+            const merged = mergeById(localBoard, cloudBoard);
+            merged.sort((a, b) => (a.order || 99) - (b.order || 99));
+            localStorage.setItem(KEYS.BOARD, JSON.stringify(merged));
             hasUpdated = true;
           }
 
+          // 6. Pendaftaran Anggota
           if (rRes.data && rRes.data.length > 0) {
-            const mappedRegs = rRes.data.map(r => ({
+            const localRegs = this.getRegistrations();
+            const cloudRegs = rRes.data.map(r => ({
               id: r.id,
               refCode: r.ref_code,
               fullName: r.full_name,
@@ -1015,9 +1081,11 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
               reason: r.reason,
               date: r.date,
               status: r.status,
-              notes: r.notes
+              notes: r.notes || ''
             }));
-            localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(mappedRegs));
+            const merged = mergeById(localRegs, cloudRegs);
+            merged.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+            localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(merged));
             hasUpdated = true;
           }
 
@@ -1028,7 +1096,7 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
           }
           return true;
         } catch (err) {
-          console.warn('[Supabase Sync Error]:', err?.message || err);
+          console.error('[Supabase Sync Error]:', err?.message || err, err);
           return false;
         } finally {
           _syncPromise = null;
@@ -1104,27 +1172,32 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
     saveCategory(cat) {
       const cats = this.getCategories();
-      let target;
-      if (cat.id) {
-        const idx = cats.findIndex(c => c.id === cat.id);
-        if (idx >= 0) {
-          cats[idx] = { ...cats[idx], ...cat };
-          target = cats[idx];
-        }
+      const id = (cat.id && String(cat.id).trim()) ? String(cat.id).trim() : ('cat-' + Date.now());
+      const rawSlug = (cat.slug && String(cat.slug).trim()) ? String(cat.slug).trim() : (cat.name || '');
+      const slug = rawSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ('cat-' + Date.now());
+
+      const target = {
+        id: id,
+        name: String(cat.name || '').trim(),
+        slug: slug
+      };
+
+      const idx = cats.findIndex(c => c.id === target.id);
+      if (idx >= 0) {
+        cats[idx] = { ...cats[idx], ...target };
       } else {
-        target = {
-          id: 'cat-' + Date.now(),
-          name: cat.name,
-          slug: (cat.slug || cat.name).toLowerCase().replace(/[^a-z0-9]/g, '-')
-        };
         cats.push(target);
       }
       localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cats));
 
       const client = this.getSupabaseClient();
-      if (client && target && this.isCloudEnabled()) {
+      if (client && this.isCloudEnabled()) {
         executeCloudQuery(
-          client.from('kmp_categories').upsert(target),
+          client.from('kmp_categories').upsert({
+            id: target.id,
+            name: target.name,
+            slug: target.slug
+          }),
           'Simpan Kategori'
         );
       }
@@ -1230,13 +1303,27 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
     saveProduct(prod) {
       const prods = this.getProducts();
-      if (prod.id) {
-        const idx = prods.findIndex(p => p.id === prod.id);
-        if (idx >= 0) prods[idx] = { ...prods[idx], ...prod };
-        else prods.push(prod);
+      const id = (prod.id && String(prod.id).trim()) ? String(prod.id).trim() : ('prod-' + Date.now());
+      const unitId = (prod.unitId && String(prod.unitId).trim()) ? String(prod.unitId).trim() : null;
+
+      const productRecord = {
+        id: id,
+        name: String(prod.name || '').trim(),
+        category: String(prod.category || 'sembako').trim(),
+        unitId: unitId,
+        price: parseInt(prod.price, 10) || 0,
+        stock: parseInt(prod.stock, 10) || 0,
+        description: String(prod.description || '').trim(),
+        image: String(prod.image || '').trim(),
+        featured: Boolean(prod.featured),
+        isPublished: prod.isPublished !== false
+      };
+
+      const idx = prods.findIndex(p => p.id === productRecord.id);
+      if (idx >= 0) {
+        prods[idx] = { ...prods[idx], ...productRecord };
       } else {
-        prod.id = 'prod-' + Date.now();
-        prods.unshift(prod);
+        prods.unshift(productRecord);
       }
       localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(prods));
 
@@ -1244,16 +1331,16 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
       if (client && this.isCloudEnabled()) {
         executeCloudQuery(
           client.from('kmp_products').upsert({
-            id: prod.id,
-            name: prod.name,
-            category: prod.category,
-            unit_id: prod.unitId,
-            price: prod.price,
-            stock: prod.stock,
-            description: prod.description,
-            image: prod.image,
-            featured: !!prod.featured,
-            is_published: prod.isPublished !== false
+            id: productRecord.id,
+            name: productRecord.name,
+            category: productRecord.category,
+            unit_id: productRecord.unitId,
+            price: productRecord.price,
+            stock: productRecord.stock,
+            description: productRecord.description,
+            image: productRecord.image,
+            featured: productRecord.featured,
+            is_published: productRecord.isPublished
           }),
           'Simpan Produk'
         );
@@ -1360,10 +1447,10 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
       const newReg = {
         id: 'reg-' + Date.now(),
         refCode: generateRefCode(),
-        fullName: formData.fullName.trim(),
-        phone: formData.phone.trim(),
-        rtrw: formData.rtrw.trim(),
-        reason: formData.reason.trim(),
+        fullName: String(formData.fullName || '').trim(),
+        phone: String(formData.phone || '').trim(),
+        rtrw: String(formData.rtrw || '').trim(),
+        reason: String(formData.reason || '').trim(),
         date: `${yyyy}-${mm}-${dd} ${hh}:${ii}`,
         status: 'Menunggu Verifikasi',
         notes: 'Pendaftaran otomatis tersimpan via portal web.'
@@ -1375,7 +1462,7 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
         executeCloudQuery(
-          client.from('kmp_registrations').insert({
+          client.from('kmp_registrations').upsert({
             id: newReg.id,
             ref_code: newReg.refCode,
             full_name: newReg.fullName,
@@ -1402,11 +1489,21 @@ CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL USING (true
 
         const client = this.getSupabaseClient();
         if (client && this.isCloudEnabled()) {
-          const payload = {};
-          if (updateData.status) payload.status = updateData.status;
-          if (updateData.notes !== undefined) payload.notes = updateData.notes;
+          const reg = list[idx];
+          // Kirim seluruh skema record via upsert agar pendaftaran (bahkan dari data awal)
+          // dipastikan tersimpan dan ter-update di Supabase tanpa 0-row update failure
           executeCloudQuery(
-            client.from('kmp_registrations').update(payload).eq('id', id),
+            client.from('kmp_registrations').upsert({
+              id: reg.id,
+              ref_code: reg.refCode,
+              full_name: reg.fullName,
+              phone: reg.phone,
+              rtrw: reg.rtrw,
+              reason: reg.reason,
+              date: reg.date,
+              status: reg.status,
+              notes: reg.notes || ''
+            }),
             'Perbarui Pendaftaran'
           );
         }

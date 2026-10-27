@@ -89,6 +89,19 @@ document.addEventListener('DOMContentLoaded', () => {
     previewMobileImg: document.getElementById('previewMobileImg'),
     previewDesktopName: document.getElementById('previewDesktopName'),
     previewMobileName: document.getElementById('previewMobileName'),
+    // Modul Database Cloud (Supabase)
+    cloudStatusBadge: document.getElementById('cloudStatusBadge'),
+    dbStatusDot: document.getElementById('dbStatusDot'),
+    dbStatusLabel: document.getElementById('dbStatusLabel'),
+    btnTestSupabaseConn: document.getElementById('btnTestSupabaseConn'),
+    supabaseConfigForm: document.getElementById('supabaseConfigForm'),
+    cfgSupabaseUrl: document.getElementById('cfgSupabaseUrl'),
+    cfgSupabaseAnonKey: document.getElementById('cfgSupabaseAnonKey'),
+    cfgSupabaseEnabled: document.getElementById('cfgSupabaseEnabled'),
+    btnExportToSupabase: document.getElementById('btnExportToSupabase'),
+    btnPullFromSupabase: document.getElementById('btnPullFromSupabase'),
+    sqlSchemaPreview: document.getElementById('sqlSchemaPreview'),
+    btnCopySqlSchema: document.getElementById('btnCopySqlSchema'),
     // Toast Container
     toastContainer: document.getElementById('toastContainer')
   };
@@ -145,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (tabId === 'units') renderUnits();
     else if (tabId === 'board') renderBoard();
     else if (tabId === 'settings') renderSettings();
+    else if (tabId === 'database') renderDatabase();
 
     // Tutup mobile sidebar
     if (elements.sidebar) elements.sidebar.classList.remove('open');
@@ -287,14 +301,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr>
     `).join('');
 
-    // Event Ganti Status Langsung
+    // Handler Perubahan Status Pendaftaran Langsung
     elements.regTableBody.querySelectorAll('.status-changer').forEach(sel => {
       sel.addEventListener('change', (e) => {
         const id = e.target.getAttribute('data-id');
         const newStatus = e.target.value;
-        Store.updateRegistration(id, { status: newStatus });
-        showToast(`Status berhasil diubah menjadi "${newStatus}"`, 'success');
-        renderOverview();
+        handleRegistrationStatusChange(id, newStatus);
       });
     });
 
@@ -328,6 +340,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     });
+  }
+
+  // Handler Perubahan Status Registrasi (Verifikasi Anggota)
+  function handleRegistrationStatusChange(id, newStatus) {
+    if (!id || !newStatus) return;
+    try {
+      Store.updateRegistration(id, { status: newStatus });
+      showToast(`Status pendaftaran berhasil diubah menjadi "${newStatus}"`, 'success');
+      renderRegistrations();
+      renderOverview();
+    } catch (err) {
+      console.error('[Admin Status Change Error]:', err);
+      showToast('Gagal mengubah status pendaftaran.', 'danger');
+    }
   }
 
   // Modal 4 Template Pesan WhatsApp Follow-up
@@ -389,6 +415,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Sinkronisasi Seluruh Dropdown Kategori (Filter Toolbar & Modal Form Produk)
+  function populateCategoryDropdowns() {
+    const categories = Store.getCategories();
+
+    // 1. Dropdown Filter di Toolbar Produk
+    if (elements.prodCatFilterSelect) {
+      const currentVal = elements.prodCatFilterSelect.value || 'all';
+      elements.prodCatFilterSelect.innerHTML = `<option value="all">Semua Kategori</option>` +
+        categories.map(c => `<option value="${c.slug}" ${currentVal === c.slug ? 'selected' : ''}>${Store.sanitize(c.name)}</option>`).join('');
+    }
+
+    // 2. Dropdown Kategori di Form Modal Produk
+    const catSelect = document.getElementById('prodFormCategory');
+    if (catSelect) {
+      const currentVal = catSelect.value;
+      catSelect.innerHTML = categories.map(c => `<option value="${c.slug}" ${currentVal === c.slug ? 'selected' : ''}>${Store.sanitize(c.name)}</option>`).join('');
+    }
+  }
+
   // ==================== MODUL 3: MANAJEMEN PRODUK ====================
   function renderProducts() {
     if (!elements.prodTableBody) return;
@@ -396,12 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const categories = Store.getCategories();
     const units = Store.getUnits();
 
-    // Sinkron dropdown kategori filter
-    if (elements.prodCatFilterSelect) {
-      const currentVal = elements.prodCatFilterSelect.value;
-      elements.prodCatFilterSelect.innerHTML = `<option value="all">Semua Kategori</option>` +
-        categories.map(c => `<option value="${c.slug}" ${currentVal === c.slug ? 'selected' : ''}>${Store.sanitize(c.name)}</option>`).join('');
-    }
+    // Sinkron dropdown kategori filter & modal
+    populateCategoryDropdowns();
 
     if (state.prodFilterCat !== 'all') {
       list = list.filter(p => p.category === state.prodFilterCat);
@@ -471,16 +512,16 @@ document.addEventListener('DOMContentLoaded', () => {
   function openProductFormModal(prodId = null) {
     if (!elements.prodModal || !elements.prodForm) return;
 
-    const categories = Store.getCategories();
+    populateCategoryDropdowns();
+
     const units = Store.getUnits();
-
-    // Isi Opsi Kategori & Unit Usaha
-    const catSelect = document.getElementById('prodFormCategory');
     const unitSelect = document.getElementById('prodFormUnit');
+    if (unitSelect) {
+      unitSelect.innerHTML = `<option value="">-- Tanpa Unit Khusus (Mandiri) --</option>` +
+        units.map(u => `<option value="${u.id}">${Store.sanitize(u.name)}</option>`).join('');
+    }
 
-    catSelect.innerHTML = categories.map(c => `<option value="${c.slug}">${Store.sanitize(c.name)}</option>`).join('');
-    unitSelect.innerHTML = units.map(u => `<option value="${u.id}">${Store.sanitize(u.name)}</option>`).join('');
-
+    const catSelect = document.getElementById('prodFormCategory');
     const hiddenId = document.getElementById('prodFormId');
     const nameInput = document.getElementById('prodFormName');
     const priceInput = document.getElementById('prodFormPrice');
@@ -496,8 +537,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elements.prodModalTitle) elements.prodModalTitle.textContent = 'Edit Data Produk';
       hiddenId.value = prod.id;
       nameInput.value = prod.name;
-      catSelect.value = prod.category;
-      unitSelect.value = prod.unitId;
+      if (catSelect) catSelect.value = prod.category;
+      if (unitSelect) unitSelect.value = prod.unitId || '';
       priceInput.value = prod.price;
       stockInput.value = prod.stock;
       descInput.value = prod.description || '';
@@ -508,6 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elements.prodModalTitle) elements.prodModalTitle.textContent = 'Tambah Produk Baru';
       elements.prodForm.reset();
       hiddenId.value = '';
+      if (unitSelect) unitSelect.value = '';
       if (previewImg) previewImg.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';
       imgUrlInput.value = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';
     }
@@ -535,30 +577,61 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.btnAddProduct.addEventListener('click', () => openProductFormModal(null));
   }
 
-  if (elements.prodForm) {
-    elements.prodForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const id = document.getElementById('prodFormId').value;
+  // Controller Form Produk (Tambah & Edit)
+  function handleProductSubmit(e) {
+    e.preventDefault();
+    try {
+      const idInput = document.getElementById('prodFormId');
+      const id = idInput ? idInput.value.trim() : '';
+
+      const nameInput = document.getElementById('prodFormName');
+      const catInput = document.getElementById('prodFormCategory');
+      const unitInput = document.getElementById('prodFormUnit');
+      const priceInput = document.getElementById('prodFormPrice');
+      const stockInput = document.getElementById('prodFormStock');
+      const descInput = document.getElementById('prodFormDesc');
+      const imgUrlInput = document.getElementById('prodFormImgUrl');
+      const featuredInput = document.getElementById('prodFormFeatured');
+
+      const name = nameInput ? nameInput.value.trim() : '';
+      if (!name) {
+        showToast('Nama produk wajib diisi.', 'warning');
+        return;
+      }
+
       const productData = {
-        name: document.getElementById('prodFormName').value.trim(),
-        category: document.getElementById('prodFormCategory').value,
-        unitId: document.getElementById('prodFormUnit').value,
-        price: parseInt(document.getElementById('prodFormPrice').value, 10) || 0,
-        stock: parseInt(document.getElementById('prodFormStock').value, 10) || 0,
-        description: document.getElementById('prodFormDesc').value.trim(),
-        image: document.getElementById('prodFormImgUrl').value.trim(),
-        featured: document.getElementById('prodFormFeatured').checked,
+        name: name,
+        category: catInput ? catInput.value : 'sembako',
+        unitId: (unitInput && unitInput.value.trim()) ? unitInput.value.trim() : null,
+        price: priceInput ? (parseInt(priceInput.value, 10) || 0) : 0,
+        stock: stockInput ? (parseInt(stockInput.value, 10) || 0) : 0,
+        description: descInput ? descInput.value.trim() : '',
+        image: imgUrlInput ? imgUrlInput.value.trim() : '',
+        featured: featuredInput ? featuredInput.checked : false,
         isPublished: true
       };
 
-      if (id) productData.id = id;
+      if (id) {
+        productData.id = id;
+      }
+
       Store.saveProduct(productData);
 
+      if (elements.prodForm) {
+        elements.prodForm.reset();
+      }
       closeAllModals();
       showToast('Katalog produk berhasil diperbarui!', 'success');
       renderProducts();
       renderOverview();
-    });
+    } catch (err) {
+      console.error('[Admin Product Submit Error]:', err);
+      showToast('Terjadi kesalahan saat menyimpan produk.', 'danger');
+    }
+  }
+
+  if (elements.prodForm) {
+    elements.prodForm.addEventListener('submit', handleProductSubmit);
   }
 
   if (elements.prodSearchInput) {
@@ -621,6 +694,8 @@ document.addEventListener('DOMContentLoaded', () => {
           Store.deleteCategory(id);
           showToast('Kategori telah dihapus.', 'info');
           renderCategories();
+          populateCategoryDropdowns();
+          renderProducts();
         }
       });
     });
@@ -635,18 +710,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (elements.catForm) {
-    elements.catForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const id = document.getElementById('catFormId').value;
-      const name = document.getElementById('catFormName').value.trim();
-      const slug = document.getElementById('catFormSlug').value.trim();
+  // Controller Form Kategori
+  function handleCategorySubmit(e) {
+    e.preventDefault();
+    try {
+      const idInput = document.getElementById('catFormId');
+      const id = idInput ? idInput.value.trim() : '';
+      const name = (document.getElementById('catFormName')?.value || '').trim();
+      const slug = (document.getElementById('catFormSlug')?.value || '').trim();
+
+      if (!name) {
+        showToast('Nama kategori wajib diisi.', 'warning');
+        return;
+      }
 
       Store.saveCategory({ id: id || undefined, name, slug });
+
+      if (elements.catForm) {
+        elements.catForm.reset();
+      }
       closeAllModals();
       showToast('Kategori produk berhasil disimpan!', 'success');
       renderCategories();
-    });
+      populateCategoryDropdowns();
+      renderProducts();
+    } catch (err) {
+      console.error('[Admin Category Submit Error]:', err);
+      showToast('Terjadi kesalahan saat menyimpan kategori.', 'danger');
+    }
+  }
+
+  if (elements.catForm) {
+    elements.catForm.addEventListener('submit', handleCategorySubmit);
   }
 
   // ==================== MODUL 5: MANAJEMEN UNIT USAHA ====================
@@ -968,6 +1063,180 @@ document.addEventListener('DOMContentLoaded', () => {
       renderSettings();
     });
   }
+
+  // ==================== MODUL 8: INTEGRASI DATABASE CLOUD (SUPABASE) ====================
+  function renderDatabase() {
+    const cfg = Store.getSupabaseConfig();
+
+    if (elements.cfgSupabaseUrl) elements.cfgSupabaseUrl.value = cfg.url || '';
+    if (elements.cfgSupabaseAnonKey) elements.cfgSupabaseAnonKey.value = cfg.anonKey || '';
+    if (elements.cfgSupabaseEnabled) elements.cfgSupabaseEnabled.checked = !!cfg.isEnabled;
+
+    if (elements.sqlSchemaPreview) {
+      elements.sqlSchemaPreview.value = Store.SUPABASE_SQL_SCHEMA;
+    }
+
+    updateCloudStatusBadges();
+  }
+
+  function updateCloudStatusBadges() {
+    const isEnabled = Store.isCloudEnabled();
+    const cfg = Store.getSupabaseConfig();
+
+    if (elements.cloudStatusBadge) {
+      elements.cloudStatusBadge.style.display = isEnabled ? 'inline-block' : 'none';
+    }
+
+    if (elements.dbStatusDot && elements.dbStatusLabel) {
+      if (isEnabled) {
+        elements.dbStatusDot.style.background = '#10B981';
+        elements.dbStatusLabel.innerHTML = `Terhubung ke Cloud Supabase <span style="font-weight:400; color:#6B7280;">(${Store.sanitize(cfg.url)})</span>`;
+      } else {
+        elements.dbStatusDot.style.background = '#9CA3AF';
+        elements.dbStatusLabel.textContent = 'Mode Lokal (Offline Fallback)';
+      }
+    }
+  }
+
+  // Simpan Konfigurasi Supabase
+  if (elements.supabaseConfigForm) {
+    elements.supabaseConfigForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const url = (elements.cfgSupabaseUrl ? elements.cfgSupabaseUrl.value : '').trim();
+      const anonKey = (elements.cfgSupabaseAnonKey ? elements.cfgSupabaseAnonKey.value : '').trim();
+      const isEnabled = elements.cfgSupabaseEnabled ? elements.cfgSupabaseEnabled.checked : false;
+
+      Store.saveSupabaseConfig({ url, anonKey, isEnabled });
+      updateCloudStatusBadges();
+
+      if (isEnabled) {
+        showToast('Konfigurasi Supabase disimpan! Menguji sambungan...', 'info');
+        Store.testSupabaseConnection().then(res => {
+          if (res.success) {
+            showToast(res.message, 'success');
+            setupSupabaseRealtime();
+          } else {
+            showToast(res.message, 'warning');
+          }
+        });
+      } else {
+        showToast('Konfigurasi disimpan. Mode database beralih ke Lokal.', 'info');
+      }
+    });
+  }
+
+  // Uji Koneksi Supabase
+  if (elements.btnTestSupabaseConn) {
+    elements.btnTestSupabaseConn.addEventListener('click', async () => {
+      const origText = elements.btnTestSupabaseConn.innerHTML;
+      elements.btnTestSupabaseConn.innerHTML = '<span>Menguji...</span>';
+      elements.btnTestSupabaseConn.disabled = true;
+
+      const res = await Store.testSupabaseConnection();
+      elements.btnTestSupabaseConn.innerHTML = origText;
+      elements.btnTestSupabaseConn.disabled = false;
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        updateCloudStatusBadges();
+      } else {
+        showToast(res.message, 'warning');
+      }
+    });
+  }
+
+  // Ekspor / Unggah Semua Data Lokal ke Supabase Cloud
+  if (elements.btnExportToSupabase) {
+    elements.btnExportToSupabase.addEventListener('click', async () => {
+      if (!Store.isCloudEnabled()) {
+        showToast('Silakan simpan & aktifkan konfigurasi Supabase terlebih dahulu.', 'warning');
+        return;
+      }
+      if (!confirm('Unggah seluruh data lokal saat ini (Profil, Unit Usaha, Produk, Pengurus, Registrasi) ke Supabase PostgreSQL?')) {
+        return;
+      }
+
+      elements.btnExportToSupabase.disabled = true;
+      elements.btnExportToSupabase.textContent = 'Mengunggah Data ke Cloud...';
+
+      try {
+        await Store.exportAllToSupabase();
+        showToast('Berhasil! Seluruh data lokal telah tersinkron ke Supabase Cloud.', 'success');
+      } catch (err) {
+        showToast(`Gagal ekspor: ${err.message}`, 'warning');
+      } finally {
+        elements.btnExportToSupabase.disabled = false;
+        elements.btnExportToSupabase.textContent = 'Ekspor Semua Data ke Cloud';
+      }
+    });
+  }
+
+  // Tarik Data dari Supabase Cloud
+  if (elements.btnPullFromSupabase) {
+    elements.btnPullFromSupabase.addEventListener('click', async () => {
+      if (!Store.isCloudEnabled()) {
+        showToast('Silakan simpan & aktifkan konfigurasi Supabase terlebih dahulu.', 'warning');
+        return;
+      }
+
+      elements.btnPullFromSupabase.disabled = true;
+      elements.btnPullFromSupabase.textContent = 'Menarik Data...';
+
+      const success = await Store.syncFromSupabase();
+      elements.btnPullFromSupabase.disabled = false;
+      elements.btnPullFromSupabase.textContent = 'Tarik Data dari Supabase';
+
+      if (success) {
+        showToast('Data terbaru dari Supabase Cloud berhasil dimuat ke cache browser!', 'success');
+        switchTab(state.currentTab);
+      } else {
+        showToast('Gagal menarik data dari Supabase. Cek koneksi Anda.', 'warning');
+      }
+    });
+  }
+
+  // Salin Skrip SQL Schema
+  if (elements.btnCopySqlSchema) {
+    elements.btnCopySqlSchema.addEventListener('click', () => {
+      if (elements.sqlSchemaPreview) {
+        navigator.clipboard.writeText(elements.sqlSchemaPreview.value).then(() => {
+          showToast('Skrip SQL berhasil disalin ke clipboard!', 'success');
+        }).catch(() => {
+          elements.sqlSchemaPreview.select();
+          document.execCommand('copy');
+          showToast('Skrip SQL telah disalin!', 'success');
+        });
+      }
+    });
+  }
+
+  // Supabase Realtime Listener (Notifikasi Pendaftaran Masuk)
+  function setupSupabaseRealtime() {
+    const client = Store.getSupabaseClient();
+    if (!client || !Store.isCloudEnabled()) return;
+
+    try {
+      client.channel('realtime:kmp_registrations')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kmp_registrations' }, (payload) => {
+          const reg = payload.new;
+          showToast(`Pendaftaran Baru Masuk: ${reg.full_name} (${reg.ref_code})`, 'success');
+          Store.syncFromSupabase();
+        })
+        .subscribe();
+    } catch (e) {
+      console.warn('[Supabase Realtime]:', e);
+    }
+  }
+
+  // Dengarkan Sinkronisasi Data Global
+  window.addEventListener('kmp_data_synced', () => {
+    switchTab(state.currentTab);
+  });
+
+  // Pasang status awal & realtime
+  updateCloudStatusBadges();
+  setupSupabaseRealtime();
 
   // Tombol Reset ke Default
   if (elements.btnResetIdentity) {
