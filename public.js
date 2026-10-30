@@ -88,17 +88,21 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.brandLogos.forEach(img => {
       img.src = logoSrc;
       img.alt = profile.name;
-      if (window.innerWidth <= 860) {
-        img.style.height = (profile.logoScaleMobile || 38) + 'px';
-      } else {
-        img.style.height = (profile.logoScaleDesktop || 48) + 'px';
+      if (img.closest('.site-header')) {
+        if (window.innerWidth <= 860) {
+          img.style.height = (profile.logoScaleMobile || 38) + 'px';
+        } else {
+          img.style.height = (profile.logoScaleDesktop || 48) + 'px';
+        }
+      } else if (img.closest('.footer-brand')) {
+        img.style.height = '42px';
       }
     });
 
-    // Sinkronisasi Favicon Dinamis Sesuai Logo Aktif
+    // Sinkronisasi Favicon Dinamis Sesuai Logo Aktif atau Fallback ke Default
     const favicon = document.querySelector("link[rel*='icon']");
-    if (favicon && logoSrc) {
-      favicon.href = logoSrc;
+    if (favicon) {
+      favicon.href = logoSrc || Store.DEFAULT_LOGO_SVG;
     }
 
     // Nama & Tagline
@@ -296,17 +300,27 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBoard();
   setupRegistrationFlow();
 
-  // Dengarkan Pembaruan Data Cloud dari Supabase
+  // Dengarkan Pembaruan Data Cloud dari Supabase & Mutasi Lokal
   window.addEventListener('kmp_data_synced', () => {
     renderProfile();
     renderBoard();
+  });
+
+  // Sinkronisasi Lintas Tab Otomatis (Saat Admin Mengubah Logo/Ukuran/Data di Tab Admin)
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key.startsWith('kmp_')) {
+      renderProfile();
+      renderBoard();
+    }
   });
 
   // Dengarkan perubahan ukuran jendela untuk penyesuaian tinggi logo mobile/desktop
   window.addEventListener('resize', () => {
     const profile = Store.getProfile();
     elements.brandLogos.forEach(img => {
-      img.style.height = (window.innerWidth <= 860 ? profile.logoScaleMobile || 38 : profile.logoScaleDesktop || 48) + 'px';
+      if (img.closest('.site-header')) {
+        img.style.height = (window.innerWidth <= 860 ? profile.logoScaleMobile || 38 : profile.logoScaleDesktop || 48) + 'px';
+      }
     });
   });
 });

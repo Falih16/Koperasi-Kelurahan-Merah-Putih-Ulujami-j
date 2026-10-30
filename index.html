@@ -10,8 +10,13 @@
   <!-- Favicon Dinamis -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>">
 
+  <!-- Google Fonts: Plus Jakarta Sans (Standar Eksekutif) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <!-- Stylesheet Utama -->
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
@@ -19,7 +24,9 @@
   <header class="site-header">
     <div class="container navbar">
       <a href="#beranda" class="brand-wrapper" title="Koperasi Kelurahan Merah Putih Ulujami">
-        <img class="brand-logo-img" src="" alt="Logo Koperasi Kelurahan Merah Putih Ulujami">
+        <div class="brand-logo-container">
+          <img class="brand-logo-img" src="" alt="Logo Koperasi Kelurahan Merah Putih Ulujami">
+        </div>
         <div class="brand-text-block">
           <span class="brand-title brand-title-text">KKMP Ulujami</span>
           <span class="brand-subtitle brand-subtitle-text">Koperasi Merah Putih</span>
@@ -259,47 +266,39 @@
         </p>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+      <div class="alur-grid">
         <!-- Langkah 1 -->
-        <div style="background: var(--pure-white); padding: 32px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--soft-red); color: var(--primary-red); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.35rem; margin-bottom: 20px;">
-            1
-          </div>
-          <h3 style="font-size: 1.15rem; color: var(--deep-burgundy); margin-bottom: 10px;">Pengisian Formulir Daring</h3>
-          <p style="font-size: 0.9rem; color: var(--text-dark); line-height: 1.6; margin-bottom: 0;">
+        <div class="alur-card">
+          <div class="alur-step-num">1</div>
+          <h3 class="alur-title">Pengisian Formulir Daring</h3>
+          <p class="alur-desc">
             Lengkapi data dasar Anda pada formulir di bawah (Nama, Nomor WhatsApp aktif, domisili RT/RW di Ulujami, dan motivasi bergabung).
           </p>
         </div>
 
         <!-- Langkah 2 -->
-        <div style="background: var(--pure-white); padding: 32px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--soft-red); color: var(--primary-red); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.35rem; margin-bottom: 20px;">
-            2
-          </div>
-          <h3 style="font-size: 1.15rem; color: var(--deep-burgundy); margin-bottom: 10px;">Terbit Kode Registrasi Unik</h3>
-          <p style="font-size: 0.9rem; color: var(--text-dark); line-height: 1.6; margin-bottom: 0;">
+        <div class="alur-card">
+          <div class="alur-step-num">2</div>
+          <h3 class="alur-title">Terbit Kode Registrasi Unik</h3>
+          <p class="alur-desc">
             Sistem secara instan menerbitkan kode referensi unik pendaftaran (<code style="color: var(--primary-red); font-weight: 700;">REG-KMPU-XXXX</code>) dan tersimpan aman di database cloud.
           </p>
         </div>
 
         <!-- Langkah 3 -->
-        <div style="background: var(--pure-white); padding: 32px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--soft-red); color: var(--primary-red); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.35rem; margin-bottom: 20px;">
-            3
-          </div>
-          <h3 style="font-size: 1.15rem; color: var(--deep-burgundy); margin-bottom: 10px;">Konfirmasi WhatsApp Otomatis</h3>
-          <p style="font-size: 0.9rem; color: var(--text-dark); line-height: 1.6; margin-bottom: 0;">
+        <div class="alur-card">
+          <div class="alur-step-num">3</div>
+          <h3 class="alur-title">Konfirmasi WhatsApp Otomatis</h3>
+          <p class="alur-desc">
             Kirimkan rangkuman pendaftaran langsung ke WhatsApp resmi admin pengurus untuk mendapatkan jadwal dan nomor antrean verifikasi.
           </p>
         </div>
 
         <!-- Langkah 4 -->
-        <div style="background: var(--pure-white); padding: 32px 24px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <div style="width: 52px; height: 52px; border-radius: 50%; background: var(--soft-red); color: var(--primary-red); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.35rem; margin-bottom: 20px;">
-            4
-          </div>
-          <h3 style="font-size: 1.15rem; color: var(--deep-burgundy); margin-bottom: 10px;">Verifikasi Fisik & Buku Anggota</h3>
-          <p style="font-size: 0.9rem; color: var(--text-dark); line-height: 1.6; margin-bottom: 0;">
+        <div class="alur-card">
+          <div class="alur-step-num">4</div>
+          <h3 class="alur-title">Verifikasi Fisik & Buku Anggota</h3>
+          <p class="alur-desc">
             Hadir ke kantor sekretariat membawa KTP asli untuk verifikasi berkas, akad simpanan pokok, dan penerimaan Buku Anggota resmi.
           </p>
         </div>
@@ -511,7 +510,15 @@
   <footer class="site-footer">
     <div class="container footer-grid">
       <div class="footer-brand">
-        <h4 class="brand-title-text">Koperasi Kelurahan Merah Putih Ulujami</h4>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <div class="brand-logo-container" style="max-width: 46px;">
+            <img class="brand-logo-img" src="" alt="Logo Koperasi" style="height: 40px; width: auto; object-fit: contain;">
+          </div>
+          <div>
+            <h4 class="brand-title-text" style="color: #FFF; margin-bottom: 2px; font-size: 1.15rem;">KKMP Ulujami</h4>
+            <div class="brand-subtitle-text" style="font-size: 0.75rem; color: #FFD54F; text-transform: uppercase; letter-spacing: 0.5px;">Koperasi Merah Putih</div>
+          </div>
+        </div>
         <p>
           Wadah gotong royong ekonomi warga kelurahan yang berlandaskan asas kekeluargaan, transparansi, dan kemandirian demi kemakmuran bersama se-Kecamatan Pesanggrahan.
         </p>
@@ -600,7 +607,7 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./store.js"></script>
+  <script src="assets/js/store.js"></script>
   <script src="assets/js/public.js"></script>
 </body>
 </html>

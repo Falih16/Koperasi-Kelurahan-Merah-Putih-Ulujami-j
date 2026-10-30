@@ -650,12 +650,15 @@ document.addEventListener('DOMContentLoaded', () => {
     urlInput: elements.logoUrlInput,
     previewImg: elements.previewDesktopImg,
     maxWidth: 600,
+    keepPng: true,
+    maxKb: 350,
     label: 'Logo Koperasi'
   });
 
   if (elements.logoUrlInput && elements.previewMobileImg) {
     elements.logoUrlInput.addEventListener('input', (e) => {
-      elements.previewMobileImg.src = e.target.value.trim() !== '' ? e.target.value : Store.DEFAULT_LOGO_SVG;
+      const val = e.target.value.trim();
+      elements.previewMobileImg.src = val !== '' ? val : Store.DEFAULT_LOGO_SVG;
     });
     elements.logoFileInput?.addEventListener('change', () => {
       setTimeout(() => {
@@ -690,22 +693,41 @@ document.addEventListener('DOMContentLoaded', () => {
     label: 'Background CTA Banner'
   });
 
-  // Slider Skala Logo Desktop & Mobile
+  // Slider Skala Logo Desktop & Mobile (Live Realtime Sync ke Tab Publik)
   if (elements.sliderDesktopScale) {
     elements.sliderDesktopScale.addEventListener('input', (e) => {
-      const val = e.target.value;
+      const val = parseInt(e.target.value, 10) || 48;
       if (elements.valDesktopScale) elements.valDesktopScale.textContent = val + 'px';
       if (elements.lblDesktopScale) elements.lblDesktopScale.textContent = val + 'px';
       if (elements.previewDesktopImg) elements.previewDesktopImg.style.height = val + 'px';
+
+      // Live update localStorage agar tab index.html langsung menerima event storage seketika
+      const prof = Store.getProfile();
+      prof.logoScaleDesktop = val;
+      localStorage.setItem('kmp_profile', JSON.stringify(prof));
+    });
+
+    elements.sliderDesktopScale.addEventListener('change', (e) => {
+      const val = parseInt(e.target.value, 10) || 48;
+      Store.saveProfile({ logoScaleDesktop: val });
     });
   }
 
   if (elements.sliderMobileScale) {
     elements.sliderMobileScale.addEventListener('input', (e) => {
-      const val = e.target.value;
+      const val = parseInt(e.target.value, 10) || 38;
       if (elements.valMobileScale) elements.valMobileScale.textContent = val + 'px';
       if (elements.lblMobileScale) elements.lblMobileScale.textContent = val + 'px';
       if (elements.previewMobileImg) elements.previewMobileImg.style.height = val + 'px';
+
+      const prof = Store.getProfile();
+      prof.logoScaleMobile = val;
+      localStorage.setItem('kmp_profile', JSON.stringify(prof));
+    });
+
+    elements.sliderMobileScale.addEventListener('change', (e) => {
+      const val = parseInt(e.target.value, 10) || 38;
+      Store.saveProfile({ logoScaleMobile: val });
     });
   }
 
@@ -948,5 +970,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBoard();
     renderSettings();
     renderDatabase();
+  });
+
+  // Sinkronisasi Lintas Tab Otomatis
+  window.addEventListener('storage', (e) => {
+    if (!e.key || e.key.startsWith('kmp_')) {
+      renderOverview();
+      renderRegistrations();
+      renderBoard();
+      renderSettings();
+      renderDatabase();
+    }
   });
 });

@@ -48,7 +48,10 @@ CREATE TABLE IF NOT EXISTS kmp_profile (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Pastikan kolom aset gambar ada jika tabel profil sudah pernah dibuat sebelumnya
+-- Pastikan kolom aset logo & gambar eksplisit ada jika tabel profil sudah pernah dibuat sebelumnya
+ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS logo_scale_desktop INT DEFAULT 48;
+ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS logo_scale_mobile INT DEFAULT 38;
 ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS hero_image_url TEXT;
 ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS about_banner_url TEXT;
 ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS cta_banner_url TEXT;
@@ -450,6 +453,7 @@ END $$;
         const maxWidth = options.maxWidth || 1000;
         const maxHeight = options.maxHeight || 1000;
         const quality = options.quality !== undefined ? options.quality : 0.82;
+        const maxBytes = (options.maxKb || 350) * 1024;
 
         const reader = new FileReader();
         reader.onerror = (err) => reject(err);
@@ -480,16 +484,26 @@ END $$;
             ctx.imageSmoothingQuality = 'high';
 
             const isPng = file.type === 'image/png';
-            if (isPng && options.keepPng) {
+            if (isPng && options.keepPng !== false) {
+              ctx.clearRect(0, 0, width, height);
               ctx.drawImage(img, 0, 0, width, height);
-              resolve(canvas.toDataURL('image/png'));
+              let result = canvas.toDataURL('image/png');
+              if (result.length > maxBytes) {
+                const scale = Math.sqrt(maxBytes / result.length) * 0.92;
+                canvas.width = Math.max(80, Math.round(width * scale));
+                canvas.height = Math.max(80, Math.round(height * scale));
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                result = canvas.toDataURL('image/png');
+              }
+              resolve(result);
             } else {
               ctx.fillStyle = '#FFFFFF';
               ctx.fillRect(0, 0, width, height);
               ctx.drawImage(img, 0, 0, width, height);
               let result = canvas.toDataURL('image/jpeg', quality);
-              if (result.length > 450 * 1024) {
-                result = canvas.toDataURL('image/jpeg', 0.70);
+              if (result.length > maxBytes) {
+                result = canvas.toDataURL('image/jpeg', 0.65);
               }
               resolve(result);
             }
@@ -683,6 +697,22 @@ END $$;
       return { success: true };
     },
 
+    // Alias Sinkronisasi ke Supabase Cloud
+    async syncToSupabase() {
+      try {
+        await this.exportAllToSupabase();
+        return {
+          success: true,
+          message: 'Seluruh data profil, aset gambar, pengurus, dan pendaftaran berhasil diunggah ke Supabase Cloud!'
+        };
+      } catch (err) {
+        return {
+          success: false,
+          message: err?.message || String(err)
+        };
+      }
+    },
+
     // Tarik Data dari Cloud ke Lokal (Thread-Safe Mutex & Race Condition Guard)
     async syncFromSupabase() {
       if (_syncPromise) return _syncPromise;
@@ -730,10 +760,10 @@ END $$;
               whatsapp: row.whatsapp || currentProf.whatsapp,
               email: row.email || currentProf.email,
               operationalHours: row.operational_hours || currentProf.operationalHours,
-              mapsEmbed: row.maps_embed || currentProf.mapsEmbed,
-              logoUrl: row.logo_url || currentProf.logoUrl,
-              logoScaleDesktop: row.logo_scale_desktop || currentProf.logoScaleDesktop,
-              logoScaleMobile: row.logo_scale_mobile || currentProf.logoScaleMobile,
+              mapsEmbed: row.maps_embed !== undefined && row.maps_embed !== null ? row.maps_embed : currentProf.mapsEmbed,
+              logoUrl: row.logo_url !== undefined && row.logo_url !== null ? row.logo_url : currentProf.logoUrl,
+              logoScaleDesktop: row.logo_scale_desktop ? parseInt(row.logo_scale_desktop, 10) : (currentProf.logoScaleDesktop || 48),
+              logoScaleMobile: row.logo_scale_mobile ? parseInt(row.logo_scale_mobile, 10) : (currentProf.logoScaleMobile || 38),
               heroImageUrl: row.hero_image_url || currentProf.heroImageUrl,
               aboutBannerUrl: row.about_banner_url || currentProf.aboutBannerUrl,
               ctaBannerUrl: row.cta_banner_url || currentProf.ctaBannerUrl,
@@ -783,10 +813,12 @@ END $$;
             hasUpdated = true;
           }
 
-          if (hasUpdated) {
-            window.dispatchEvent(new CustomEvent('kmp_data_synced', {
-              detail: { timestamp: Date.now() }
-            }));
+          if (hasUpdated && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+            try {
+              window.dispatchEvent(new CustomEvent('kmp_data_synced', {
+                detail: { timestamp: Date.now() }
+              }));
+            } catch (_) {}
           }
           return true;
         } catch (err) {
@@ -826,9 +858,26 @@ END $$;
 
     saveProfile(profileData) {
       const current = this.getProfile();
-      const updated = { ...current, ...profileData };
+      const updated = {
+        ...current,
+        ...profileData,
+        logoScaleDesktop: parseInt(profileData.logoScaleDesktop !== undefined ? profileData.logoScaleDesktop : current.logoScaleDesktop, 10) || 48,
+        logoScaleMobile: parseInt(profileData.logoScaleMobile !== undefined ? profileData.logoScaleMobile : current.logoScaleMobile, 10) || 38
+      };
+      
+      // 1. Simpan 0ms ke Cache Lokal
       localStorage.setItem(KEYS.PROFILE, JSON.stringify(updated));
 
+      // 2. Broadcast Event Lokal
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        try {
+          window.dispatchEvent(new CustomEvent('kmp_data_synced', {
+            detail: { key: 'profile', data: updated, timestamp: Date.now() }
+          }));
+        } catch (_) {}
+      }
+
+      // 3. Upsert ke Supabase Cloud
       const client = this.getSupabaseClient();
       if (client && this.isCloudEnabled()) {
         executeCloudQuery(
@@ -843,13 +892,17 @@ END $$;
             whatsapp: updated.whatsapp,
             email: updated.email,
             operational_hours: updated.operationalHours,
-            maps_embed: updated.mapsEmbed,
-            logo_url: updated.logoUrl,
+            maps_embed: updated.mapsEmbed || '',
+            logo_url: updated.logoUrl || '',
             logo_scale_desktop: updated.logoScaleDesktop,
             logo_scale_mobile: updated.logoScaleMobile,
-            hero_image_url: updated.heroImageUrl,
-            about_banner_url: updated.aboutBannerUrl,
-            cta_banner_url: updated.ctaBannerUrl
+            hero_image_url: updated.heroImageUrl || '',
+            about_banner_url: updated.aboutBannerUrl || '',
+            cta_banner_url: updated.ctaBannerUrl || '',
+            stats: updated.stats || {},
+            mission: updated.mission || [],
+            values: updated.values || [],
+            updated_at: new Date().toISOString()
           }),
           'Simpan Profil & Aset Gambar'
         );
