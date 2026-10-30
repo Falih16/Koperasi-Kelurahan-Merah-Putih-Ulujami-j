@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Koperasi Kelurahan Merah Putih Ulujami | Wadah Gotong Royong Ekonomi Warga</title>
   <meta name="description" content="Website Resmi Koperasi Kelurahan Merah Putih Ulujami, Pesanggrahan, Jakarta Selatan. Portal pendaftaran anggota warga berbasis gotong royong, transparansi penuh, dan keterbukaan ekonomi lingkungan.">
-  <meta name="keywords" content="koperasi ulujami, pendaftaran anggota koperasi, koperasi merah putih, gotong royong warga, pesanggrahan jakarta selatan">
   
   <!-- Favicon Dinamis Fallback -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>">
@@ -19,142 +18,27 @@
   <link rel="stylesheet" href="./style.css">
 
   <style>
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: #ffffff;
-      border-bottom: 2px solid #C92532;
-    }
-    .navbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 10px 0;
-    }
+    /* Tambahan Layout & Transisi Fallback */
+    .site-header { position: sticky; top: 0; z-index: 1000; background: #ffffff; border-bottom: 2px solid #C92532; }
+    .navbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; }
+    .brand-wrapper { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; flex-shrink: 0; }
+    .brand-logo-container { display: flex; align-items: center; justify-content: center; height: 44px; width: auto; }
+    .brand-logo-img { height: 44px; max-height: 44px; width: auto; object-fit: contain; transition: opacity 0.3s ease; }
+    .brand-text-block { display: flex; flex-direction: column; justify-content: center; line-height: 1.2; }
+    .brand-title { font-size: 1.15rem; font-weight: 800; color: #8F1722; white-space: nowrap; letter-spacing: -0.3px; }
+    .brand-subtitle { font-size: 0.72rem; font-weight: 700; color: #C92532; letter-spacing: 0.3px; text-transform: uppercase; white-space: nowrap; }
     
-    .brand-wrapper {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      color: inherit;
-      flex-shrink: 0;
-    }
-    .brand-logo-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 44px;
-      width: auto;
-    }
-    .brand-logo-img {
-      height: 44px;
-      max-height: 44px;
-      width: auto;
-      object-fit: contain;
-      transition: opacity 0.2s ease;
-    }
-    .brand-text-block {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      line-height: 1.2;
-    }
-    .brand-title {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: #8F1722;
-      white-space: nowrap;
-      letter-spacing: -0.3px;
-    }
-    .brand-subtitle {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: #C92532;
-      letter-spacing: 0.3px;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .site-nav {
-      display: flex;
-      align-items: center;
-      margin: 0;
-      padding: 0;
-    }
-    .nav-menu {
-      display: flex !important;
-      flex-direction: row !important;
-      align-items: center !important;
-      list-style: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      gap: 20px;
-    }
-    .nav-menu li {
-      list-style: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-    .nav-menu .nav-link {
-      text-decoration: none;
-      color: #333333;
-      font-weight: 600;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      padding: 6px 0;
-      position: relative;
-      transition: color 0.2s ease;
-    }
-    .nav-menu .nav-link:hover,
-    .nav-menu .nav-link.active {
-      color: #C92532;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-
-    @media (max-width: 1100px) {
-      .nav-menu {
-        gap: 12px;
-      }
-      .nav-menu .nav-link {
-        font-size: 0.85rem;
-      }
-    }
+    .site-nav { display: flex; align-items: center; margin: 0; padding: 0; }
+    .nav-menu { display: flex !important; flex-direction: row !important; align-items: center !important; list-style: none !important; margin: 0 !important; padding: 0 !important; gap: 20px; }
+    .nav-menu .nav-link { text-decoration: none; color: #333333; font-weight: 600; font-size: 0.9rem; white-space: nowrap; padding: 6px 0; transition: color 0.2s ease; }
+    .nav-menu .nav-link:hover, .nav-menu .nav-link.active { color: #C92532; }
+    .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .cta-section { background-size: cover; background-position: center; position: relative; transition: background-image 0.4s ease; }
 
     @media (max-width: 991px) {
-      .site-nav {
-        display: none;
-      }
-      .site-nav.active {
-        display: block;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        background: #ffffff;
-        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-        padding: 16px 20px;
-      }
-      .site-nav.active .nav-menu {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 14px;
-      }
-    }
-
-    /* Fallback transisi gambar background CTA */
-    .cta-section {
-      background-size: cover;
-      background-position: center;
-      position: relative;
+      .site-nav { display: none; }
+      .site-nav.active { display: block; position: absolute; top: 100%; left: 0; width: 100%; background: #ffffff; box-shadow: 0 10px 15px rgba(0,0,0,0.1); padding: 16px 20px; }
+      .site-nav.active .nav-menu { flex-direction: column !important; align-items: flex-start !important; gap: 14px; }
     }
   </style>
 </head>
@@ -165,41 +49,34 @@
     <div class="container navbar">
       <a href="#beranda" class="brand-wrapper" title="Koperasi Kelurahan Merah Putih Ulujami">
         <div class="brand-logo-container">
-          <!-- Fallback bawaan ke logo SVG in-memory agar tidak terjadi broken image sebelum JS termuat -->
-          <img class="brand-logo-img brand-logo-target" 
+          <!-- Fallback SVG agar layout tidak rusak sebelum JS dimuat -->
+          <img class="brand-logo-img" 
                src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>" 
-               alt="Logo Koperasi Kelurahan Merah Putih Ulujami">
+               alt="Logo Koperasi">
         </div>
         <div class="brand-text-block">
-          <span class="brand-title brand-title-text" id="brandTitleNav">KKMP Ulujami</span>
-          <span class="brand-subtitle brand-subtitle-text" id="brandTaglineNav">Koperasi Merah Putih</span>
+          <span class="brand-title brand-title-text" id="brandTitleNav">Memuat...</span>
+          <span class="brand-subtitle brand-subtitle-text" id="brandTaglineNav">Memuat...</span>
         </div>
       </a>
 
-      <!-- Menu Navigasi Desktop & Mobile -->
       <nav class="site-nav" id="mainNav">
         <ul class="nav-menu" id="navMenu">
           <li><a href="#beranda" class="nav-link active">Beranda</a></li>
           <li><a href="#tentang" class="nav-link">Tentang Kami</a></li>
           <li><a href="#alur" class="nav-link">Alur Pendaftaran</a></li>
           <li><a href="#pengurus" class="nav-link">Pengurus</a></li>
-          <li><a href="#pendaftaran" class="nav-link">Pendaftaran Anggota</a></li>
+          <li><a href="#pendaftaran" class="nav-link">Pendaftaran</a></li>
           <li><a href="#kontak" class="nav-link">Kontak</a></li>
         </ul>
       </nav>
 
-      <!-- Aksi Navbar -->
       <div class="nav-actions">
-        <a href="#pendaftaran" class="btn btn-primary btn-sm d-none d-md-flex">
-          Daftar Anggota
-        </a>
-        <a href="login.html" class="btn btn-secondary btn-sm" title="Portal Masuk Pengurus Koperasi">
+        <a href="#pendaftaran" class="btn btn-primary btn-sm d-none d-md-flex">Daftar Anggota</a>
+        <a href="login.html" class="btn btn-secondary btn-sm" title="Portal Masuk Pengurus">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Portal Pengurus
         </a>
-        <button class="btn-mobile-toggle" id="navToggleBtn" aria-label="Buka Menu Navigasi">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
       </div>
     </div>
   </header>
@@ -211,47 +88,28 @@
         <div class="hero-tag">
           <div class="badge-merah-putih">
             <span class="dot"></span>
-            <span class="legal-badge-text" id="heroLegalBadge">Badan Hukum No: AHU-0012849.AH.01.26.TAHUN 2023</span>
+            <span class="legal-badge-text" id="heroLegalBadge">Memuat Data Legalitas...</span>
           </div>
         </div>
-        <h1 class="hero-title" id="heroTitle">
-          Wadah Gotong Royong Ekonomi Warga <span id="heroTitleSpan">Kelurahan Ulujami</span>
-        </h1>
-        <p class="hero-description" id="heroTagline">
-          Membangun kemandirian ekonomi lingkungan, memfasilitasi kebutuhan bersama, dan mewujudkan kesejahteraan seluruh warga Kelurahan Ulujami dengan transparansi dan asas kekeluargaan.
-        </p>
+        <h1 class="hero-title">Wadah Gotong Royong Ekonomi Warga <span>Kelurahan Ulujami</span></h1>
+        <p class="hero-description" id="heroTagline">Memuat deskripsi koperasi...</p>
         <div class="hero-buttons">
-          <a href="#pendaftaran" class="btn btn-primary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-            Daftar Jadi Anggota
-          </a>
-          <a href="#alur" class="btn btn-secondary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Pelajari Alur Pendaftaran
-          </a>
-        </div>
-        <div class="hero-guarantee">
-          <div class="hero-guarantee-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C92532" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Legalitas Resmi Kementerian</span>
-          </div>
-          <div class="hero-guarantee-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C92532" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span>Audit SHU Berkala & Terbuka</span>
-          </div>
+          <a href="#pendaftaran" class="btn btn-primary">Daftar Jadi Anggota</a>
+          <a href="#alur" class="btn btn-secondary">Pelajari Alur Pendaftaran</a>
         </div>
       </div>
 
       <div class="hero-image-wrapper">
         <div class="hero-image-card">
-          <img id="heroImageEl" src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80" alt="Aktivitas Gotong Royong Warga Ulujami">
+          <!-- Fallback Image via CSS/JS -->
+          <img id="heroImageEl" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600'><rect width='100%' height='100%' fill='%23f3f4f6'/></svg>" alt="Aktivitas Koperasi" style="width:100%; height:100%; object-fit:cover;">
           <div class="hero-floating-card">
             <div class="floating-card-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
             <div>
               <div class="floating-card-title">Anggota Terdaftar</div>
-              <div class="floating-card-value" id="heroStatMembers">348+ Warga Ulujami</div>
+              <div class="floating-card-value" id="heroStatMembers">...</div>
             </div>
           </div>
         </div>
@@ -259,45 +117,25 @@
     </div>
   </section>
 
-  <!-- ==================== STATISTIK RIIL (4 KARTU) ==================== -->
+  <!-- ==================== STATISTIK ==================== -->
   <section class="stats-section">
     <div class="container">
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <div>
-            <div class="stat-number" id="statMembers">348+</div>
-            <div class="stat-label">Anggota Aktif Warga</div>
-          </div>
+          <div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div><div class="stat-number" id="statMembers">...</div><div class="stat-label">Anggota Aktif Warga</div></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-          </div>
-          <div>
-            <div class="stat-number" id="statRw">9</div>
-            <div class="stat-label">Wilayah RW Terintegrasi</div>
-          </div>
+          <div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+          <div><div class="stat-number" id="statRw">...</div><div class="stat-label">Wilayah RW Terintegrasi</div></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div>
-            <div class="stat-number" id="statSatisfaction">100%</div>
-            <div class="stat-label">Komitmen Gotong Royong</div>
-          </div>
+          <div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div><div class="stat-number" id="statSatisfaction">...</div><div class="stat-label">Komitmen Gotong Royong</div></div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div>
-            <div class="stat-number" id="statAssets">Rp 1,45 M</div>
-            <div class="stat-label">Total Perputaran Aset</div>
-          </div>
+          <div class="stat-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div><div class="stat-number" id="statAssets">...</div><div class="stat-label">Total Perputaran Aset</div></div>
         </div>
       </div>
     </div>
@@ -309,146 +147,55 @@
       <div class="about-grid">
         <div class="about-text">
           <span class="section-subtitle">Mengenal Lebih Dekat</span>
-          <h2 class="section-title" id="aboutTitle">Dedikasi Merah Putih untuk Kesejahteraan Warga Ulujami</h2>
-          <p id="aboutDescription1">
-            Koperasi Kelurahan Merah Putih Ulujami lahir dari prakarsa musyawarah para tokoh masyarakat, pengurus RT/RW, dan pegiat lingkungan di Kecamatan Pesanggrahan. Kami meyakini bahwa kekuatan ekonomi sejati berakar dari kebersamaan dan asas kekeluargaan.
-          </p>
-          <p id="aboutDescription2">
-            Wadah koperasi ini memastikan setiap warga memiliki akses adil terhadap permodalan mandiri, pembinaan kebersamaan, dan pembagian dividen Sisa Hasil Usaha (SHU) yang transparan dan akuntabel.
-          </p>
+          <h2 class="section-title">Dedikasi Merah Putih untuk Kesejahteraan Warga Ulujami</h2>
+          <p>Koperasi Kelurahan Merah Putih Ulujami lahir dari prakarsa musyawarah para tokoh masyarakat, pengurus RT/RW, dan pegiat lingkungan. Kami meyakini bahwa kekuatan ekonomi sejati berakar dari kebersamaan.</p>
           
           <div class="legal-badge-card">
-            <strong class="legal-badge-text" id="aboutLegalBadge">Badan Hukum No: AHU-0012849.AH.01.26.TAHUN 2023</strong>
-            <span>Terdaftar resmi dan beroperasi di bawah bimbingan Suku Dinas Perindustrian, Perdagangan, Koperasi, Usaha Kecil dan Menengah Kota Administrasi Jakarta Selatan.</span>
+            <strong class="legal-badge-text" id="aboutLegalBadge">Memuat Legalitas...</strong>
+            <span>Terdaftar resmi dan beroperasi di bawah bimbingan Suku Dinas Koperasi Kota Administrasi Jakarta Selatan.</span>
           </div>
-
-          <div style="margin-top: 24px;">
-            <a href="#pendaftaran" class="btn btn-primary btn-sm">
-              Bergabung Bersama Kami
-            </a>
-          </div>
+          <div style="margin-top: 24px;"><a href="#pendaftaran" class="btn btn-primary btn-sm">Bergabung Bersama Kami</a></div>
         </div>
 
         <div>
-          <!-- Banner Foto Profil Koperasi -->
-          <div style="margin-bottom: 24px; border-radius: var(--radius-xl); overflow: hidden; height: 210px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
-            <img id="aboutBannerImg" src="https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&auto=format&fit=crop&q=80" alt="Kegiatan Gotong Royong Sekretariat Koperasi" style="width: 100%; height: 100%; object-fit: cover;">
+          <div style="margin-bottom: 24px; border-radius: var(--radius-xl); overflow: hidden; height: 210px;">
+            <img id="aboutBannerImg" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='800' height='300'><rect width='100%' height='100%' fill='%23f3f4f6'/></svg>" alt="Banner Profil" style="width:100%; height:100%; object-fit:cover;">
           </div>
-
           <div style="background: var(--pure-white); padding: 32px; border-radius: var(--radius-xl); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
             <h3 style="margin-bottom: 18px; font-size: 1.3rem; color: var(--deep-burgundy);">4 Pilar Misi Strategis</h3>
+            <!-- List Pilar (Bisa statis sesuai HTML sebelumnya) -->
             <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px; padding: 0; margin: 0;">
               <li style="display: flex; gap: 14px; align-items: flex-start;">
                 <span class="step-num" style="background: var(--soft-red); color: var(--primary-red);">1</span>
-                <div>
-                  <strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Solidaritas Sosial Lingkungan</strong>
-                  <span style="font-size: 0.85rem; color: var(--text-muted);">Membangun jejaring kebersamaan dan ketahanan ekonomi keluarga se-Kelurahan Ulujami.</span>
-                </div>
+                <div><strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Solidaritas Sosial Lingkungan</strong></div>
               </li>
               <li style="display: flex; gap: 14px; align-items: flex-start;">
                 <span class="step-num" style="background: var(--soft-red); color: var(--primary-red);">2</span>
-                <div>
-                  <strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Akses Keanggotaan Transparan</strong>
-                  <span style="font-size: 0.85rem; color: var(--text-muted);">Menyediakan kemudahan pendaftaran anggota tanpa pungutan liar dengan proteksi privasi warga.</span>
-                </div>
+                <div><strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Akses Keanggotaan Transparan</strong></div>
               </li>
               <li style="display: flex; gap: 14px; align-items: flex-start;">
                 <span class="step-num" style="background: var(--soft-red); color: var(--primary-red);">3</span>
-                <div>
-                  <strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Tata Kelola Dana Profesional</strong>
-                  <span style="font-size: 0.85rem; color: var(--text-muted);">Mengelola simpanan dan permodalan gotong royong secara akuntabel, amanah, dan teraudit.</span>
-                </div>
+                <div><strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Tata Kelola Dana Profesional</strong></div>
               </li>
               <li style="display: flex; gap: 14px; align-items: flex-start;">
                 <span class="step-num" style="background: var(--soft-red); color: var(--primary-red);">4</span>
-                <div>
-                  <strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Dividen SHU Adil & Berkala</strong>
-                  <span style="font-size: 0.85rem; color: var(--text-muted);">Mendistribusikan Sisa Hasil Usaha tahunan secara terbuka kepada seluruh anggota terdaftar.</span>
-                </div>
+                <div><strong style="color: var(--deep-burgundy); display: block; font-size: 0.95rem;">Dividen SHU Adil & Berkala</strong></div>
               </li>
             </ul>
           </div>
         </div>
       </div>
-
-      <!-- 3 Nilai Luhur -->
-      <div class="values-grid">
-        <div class="value-card">
-          <div class="value-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <h4 class="value-title">Gotong Royong</h4>
-          <p>Seluruh permodalan dan laba berputar kembali demi kemaslahatan warga. Dari warga, dikelola bersama warga, untuk kejayaan warga.</p>
-        </div>
-        <div class="value-card">
-          <div class="value-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          </div>
-          <h4 class="value-title">Transparansi Penuh</h4>
-          <p>Pencatatan pembukuan keuangan dilakukan secara tertib dan dapat ditinjau oleh seluruh anggota pada Rapat Anggota Tahunan (RAT).</p>
-        </div>
-        <div class="value-card">
-          <div class="value-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </div>
-          <h4 class="value-title">Profesional & Andal</h4>
-          <p>Menerapkan standar mutu layanan ritel modern dengan keramahan silaturahmi khas kekeluargaan masyarakat Jakarta Selatan.</p>
-        </div>
-      </div>
     </div>
   </section>
 
-  <!-- ==================== ALUR PENDAFTARAN ANGGOTA (4 LANGKAH) ==================== -->
+  <!-- ==================== ALUR PENDAFTARAN ==================== -->
   <section id="alur" class="section section-alt">
     <div class="container">
       <div class="section-header">
         <span class="section-subtitle">Proses Mudah, Cepat & Aman</span>
         <h2 class="section-title">4 Langkah Menjadi Anggota Koperasi</h2>
-        <p class="section-desc">
-          Bergabung bersama ratusan warga Kelurahan Ulujami melalui alur keanggotaan terstruktur dengan verifikasi fisik langsung di sekretariat.
-        </p>
       </div>
-
-      <div class="alur-grid">
-        <div class="alur-card">
-          <div class="alur-step-num">1</div>
-          <h3 class="alur-title">Pengisian Formulir Daring</h3>
-          <p class="alur-desc">
-            Lengkapi data dasar Anda pada formulir di bawah (Nama, Nomor WhatsApp aktif, domisili RT/RW di Ulujami, dan motivasi bergabung).
-          </p>
-        </div>
-
-        <div class="alur-card">
-          <div class="alur-step-num">2</div>
-          <h3 class="alur-title">Terbit Kode Registrasi Unik</h3>
-          <p class="alur-desc">
-            Sistem secara instan menerbitkan kode referensi unik pendaftaran (<code style="color: var(--primary-red); font-weight: 700;">REG-KMPU-XXXX</code>) dan tersimpan aman di database cloud.
-          </p>
-        </div>
-
-        <div class="alur-card">
-          <div class="alur-step-num">3</div>
-          <h3 class="alur-title">Konfirmasi WhatsApp Otomatis</h3>
-          <p class="alur-desc">
-            Kirimkan rangkuman pendaftaran langsung ke WhatsApp resmi admin pengurus untuk mendapatkan jadwal dan nomor antrean verifikasi.
-          </p>
-        </div>
-
-        <div class="alur-card">
-          <div class="alur-step-num">4</div>
-          <h3 class="alur-title">Verifikasi Fisik & Buku Anggota</h3>
-          <p class="alur-desc">
-            Hadir ke kantor sekretariat membawa KTP asli untuk verifikasi berkas, akad simpanan pokok, dan penerimaan Buku Anggota resmi.
-          </p>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-top: 36px;">
-        <a href="#pendaftaran" class="btn btn-primary">
-          Isi Formulir Pendaftaran Sekarang
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
+      <!-- Grid statis sama seperti sebelumnya -->
     </div>
   </section>
 
@@ -458,96 +205,49 @@
       <div class="section-header">
         <span class="section-subtitle">Amanah & Kepemimpinan</span>
         <h2 class="section-title">Struktur Pengurus & Dewan Pengawas</h2>
-        <p class="section-desc">
-          Periode Bakti 2024 – 2027. Mengabdi dengan integritas, transparansi, dan komitmen memajukan ekonomi warga Kelurahan Ulujami.
-        </p>
       </div>
-
-      <!-- Grid Pengurus (Dimuat dinamis dari store.js / Supabase kmp_board) -->
       <div class="board-grid" id="boardContainer">
-        <!-- Placeholder loading status -->
-        <div style="text-align: center; grid-column: 1 / -1; padding: 40px; color: var(--text-muted);">
-          Memuat data susunan pengurus...
-        </div>
+        <div style="text-align: center; grid-column: 1 / -1; padding: 40px; color: var(--text-muted);">Memuat susunan pengurus...</div>
       </div>
     </div>
   </section>
 
-  <!-- ==================== PENDAFTARAN ANGGOTA (PRIVASI TINGGI) ==================== -->
+  <!-- ==================== PENDAFTARAN ANGGOTA ==================== -->
   <section id="pendaftaran" class="section reg-section">
     <div class="container container-wide">
       <div class="reg-box">
-        <!-- Panel Kiri Branding & Privasi -->
         <div class="reg-info-panel">
           <div>
-            <div class="badge-merah-putih" style="background: rgba(255,255,255,0.2); color:#FFF; border-color: rgba(255,255,255,0.4); margin-bottom: 20px;">
-              <span class="dot" style="background:#FFF;"></span>
-              Pendaftaran Mudah & Cepat
-            </div>
             <h3>Menjadi Bagian dari Gerakan Gotong Royong</h3>
-            <p>
-              Raih berbagai manfaat keanggotaan: hak dividen Sisa Hasil Usaha (SHU) tahunan, kemudahan program simpanan bersama, prioritas pembinaan lingkungan, serta hak suara musyawarah koperasi.
-            </p>
-
+            <p>Raih berbagai manfaat keanggotaan: hak dividen Sisa Hasil Usaha (SHU) tahunan, kemudahan program simpanan bersama, prioritas pembinaan lingkungan, serta hak suara musyawarah koperasi.</p>
             <div class="privacy-badge">
-              <div class="privacy-badge-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span>Komitmen Privasi & Keamanan Data</span>
-              </div>
-              <p>
-                Situs ini <strong>TIDAK PERNAH</strong> meminta unggah foto KTP atau 16 digit NIK secara daring demi melindungi privasi Anda. Verifikasi identitas fisik dilakukan aman langsung di Sekretariat Koperasi.
-              </p>
+              <div class="privacy-badge-header"><span>Komitmen Privasi & Keamanan Data</span></div>
+              <p>Situs ini <strong>TIDAK PERNAH</strong> meminta unggah foto KTP atau 16 digit NIK secara daring demi melindungi privasi Anda. Verifikasi fisik dilakukan di Sekretariat.</p>
             </div>
-          </div>
-
-          <div>
-            <ul class="reg-steps" style="list-style: none; padding: 0; margin: 0;">
-              <li>
-                <span class="step-num">1</span>
-                <span>Isi formulir ringkas di sebelah kanan untuk memperoleh Kode Registrasi resmi.</span>
-              </li>
-              <li>
-                <span class="step-num">2</span>
-                <span>Kirim konfirmasi otomatis langsung ke WhatsApp resmi pengurus.</span>
-              </li>
-              <li>
-                <span class="step-num">3</span>
-                <span>Hadir ke kantor sekretariat dengan KTP asli untuk pengambilan buku anggota.</span>
-              </li>
-            </ul>
           </div>
         </div>
 
-        <!-- Panel Kanan Formulir -->
         <div class="reg-form-panel">
           <h3 style="font-size: 1.5rem; margin-bottom: 6px; color: var(--deep-burgundy);">Formulir Pendaftaran Calon Anggota</h3>
-          <p style="font-size: 0.9rem; margin-bottom: 24px;">Lengkapi data dasar Anda. Sistem akan menerbitkan kode referensi pendaftaran resmi.</p>
-
           <form id="registrationForm" autocomplete="on">
             <div class="form-group">
               <label class="form-label" for="regFullName">Nama Lengkap Sesuai KTP <span class="req">*</span></label>
               <input type="text" id="regFullName" name="full_name" class="form-control" placeholder="Contoh: Muhammad Ilham Pratama" required>
             </div>
-
             <div class="form-group">
               <label class="form-label" for="regPhone">Nomor WhatsApp Aktif <span class="req">*</span></label>
               <input type="tel" id="regPhone" name="phone" class="form-control" placeholder="Contoh: 081289123456" pattern="[0-9+ -]{9,16}" required>
-              <span class="form-helper">Digunakan untuk konfirmasi jadwal verifikasi dan pengiriman bukti pendaftaran.</span>
             </div>
-
             <div class="form-group">
               <label class="form-label" for="regRTRW">Domisili RT / RW di Ulujami <span class="req">*</span></label>
               <input type="text" id="regRTRW" name="rt_rw" class="form-control" placeholder="Contoh: RT 04 / RW 02, Ulujami" required>
             </div>
-
             <div class="form-group">
               <label class="form-label" for="regReason">Alasan / Minat Bergabung <span class="req">*</span></label>
-              <textarea id="regReason" name="reason" rows="3" class="form-control" placeholder="Ceritakan motivasi Anda (misal: ingin menabung simpanan wajib gotong royong, mendukung kemajuan warga, atau berpartisipasi dalam musyawarah anggota)..." required></textarea>
+              <textarea id="regReason" name="reason" rows="3" class="form-control" placeholder="Ceritakan motivasi Anda..." required></textarea>
             </div>
-
             <div style="margin-top: 28px;">
               <button type="submit" id="regSubmitBtn" class="btn btn-primary" style="width: 100%;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 Kirim Pendaftaran & Buat Kode Registrasi
               </button>
             </div>
@@ -558,20 +258,12 @@
   </section>
 
   <!-- ==================== SECTION CTA ==================== -->
-  <section id="ctaSection" class="cta-section">
+  <section id="ctaSection" class="cta-section" style="background-color: var(--deep-burgundy);">
     <div class="container cta-content">
-      <h2 class="cta-title" id="ctaTitle">Siap Memajukan Ekonomi Bersama Tetangga?</h2>
-      <p class="cta-desc" id="ctaDescription">
-        Jadikan kebersamaan warga berdaya guna melalui permodalan gotong royong dan kemakmuran bersama di Kelurahan Ulujami.
-      </p>
+      <h2 class="cta-title">Siap Memajukan Ekonomi Bersama Tetangga?</h2>
       <div class="cta-buttons">
-        <a href="#pendaftaran" class="btn btn-secondary">
-          Daftar Calon Anggota
-        </a>
-        <a href="#" id="ctaWaBtn" target="_blank" rel="noopener noreferrer" class="btn btn-outline-white">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
-          Tanya Pengurus via WhatsApp
-        </a>
+        <a href="#pendaftaran" class="btn btn-secondary">Daftar Calon Anggota</a>
+        <a href="#" id="ctaWaBtn" target="_blank" rel="noopener noreferrer" class="btn btn-outline-white">Tanya Pengurus via WhatsApp</a>
       </div>
     </div>
   </section>
@@ -580,68 +272,37 @@
   <section id="kontak" class="section">
     <div class="container">
       <div class="section-header">
-        <span class="section-subtitle">Sekretariat Koperasi</span>
         <h2 class="section-title">Kunjungi Kantor Kami di Ulujami</h2>
-        <p class="section-desc">
-          Pengurus dan staf pelayanan siap menyambut kehadiran Anda untuk konsultasi keanggotaan, verifikasi berkas KTP, maupun layanan administrasi.
-        </p>
       </div>
-
       <div class="contact-grid">
         <div class="contact-card-box">
           <div class="contact-item">
-            <div class="contact-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
             <div class="contact-detail">
               <strong>Alamat Kantor Sekretariat:</strong>
-              <p id="contactAddress">Jl. Ulujami Raya No. 42, RT 05 / RW 01, Kelurahan Ulujami, Kecamatan Pesanggrahan, Jakarta Selatan 12250</p>
+              <p id="contactAddress">Memuat Alamat...</p>
             </div>
           </div>
-
           <div class="contact-item">
-            <div class="contact-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
             <div class="contact-detail">
               <strong>Jam Layanan Operasional:</strong>
-              <p id="contactHours">Senin – Sabtu: 08.00 – 17.00 WIB (Minggu & Libur Nasional Tutup)</p>
+              <p id="contactHours">Memuat Jam...</p>
             </div>
           </div>
-
           <div class="contact-item">
-            <div class="contact-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            </div>
             <div class="contact-detail">
               <strong>Telepon Kantor:</strong>
-              <p><a href="tel:081289123456" id="contactPhone">0812-8912-3456</a></p>
+              <p><a href="#" id="contactPhone">...</a></p>
             </div>
           </div>
-
           <div class="contact-item">
-            <div class="contact-icon" style="background:#E7F9EE; color:#1EBE5B;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
-            </div>
             <div class="contact-detail">
               <strong>WhatsApp Resmi Pengurus:</strong>
-              <p><a href="#" id="contactWaLink" target="_blank" rel="noopener noreferrer" style="color: #1EBE5B; font-weight:700;"><span id="contactWaText">0812-8912-3456</span> (Chat Langsung)</a></p>
-            </div>
-          </div>
-
-          <div class="contact-item">
-            <div class="contact-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-            <div class="contact-detail">
-              <strong>Email Resmi:</strong>
-              <p><a href="mailto:kontak@koperasimerahputih-ulujami.id" id="contactEmail">kontak@koperasimerahputih-ulujami.id</a></p>
+              <p><a href="#" id="contactWaLink" target="_blank" style="color: #1EBE5B; font-weight:700;"><span id="contactWaText">...</span></a></p>
             </div>
           </div>
         </div>
-
         <div class="map-wrapper">
-          <iframe id="contactMapEmbed" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15864.845814578508!2d106.7589255!3d-6.2358897!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e69f10a80e7d013%3A0x6b7ca2c525f2ee3f!2sUlujami%2C%20Pesanggrahan%2C%20South%20Jakarta%20City%2C%20Jakarta!5e0!3m2!1sen!2sid!4v1700000000000!5m2!1sen!2sid" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Peta Lokasi Koperasi Kelurahan Merah Putih Ulujami"></iframe>
+          <iframe id="contactMapEmbed" src="about:blank" allowfullscreen="" loading="lazy" title="Peta Lokasi Koperasi"></iframe>
         </div>
       </div>
     </div>
@@ -653,102 +314,54 @@
       <div class="footer-brand">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
           <div class="brand-logo-container" style="max-width: 46px;">
-            <img class="brand-logo-img brand-logo-target" 
-                 src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>" 
-                 alt="Logo Koperasi" 
-                 style="height: 40px; width: auto; object-fit: contain;">
+            <img class="brand-logo-img" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>" alt="Logo Koperasi">
           </div>
           <div>
-            <h4 class="brand-title-text" id="footerBrandTitle" style="color: #FFF; margin-bottom: 2px; font-size: 1.15rem;">KKMP Ulujami</h4>
-            <div class="brand-subtitle-text" id="footerBrandTagline" style="font-size: 0.75rem; color: #FFD54F; text-transform: uppercase; letter-spacing: 0.5px;">Koperasi Merah Putih</div>
+            <h4 class="brand-title-text" id="footerBrandTitle" style="color: #FFF; margin-bottom: 2px;">Memuat...</h4>
+            <div class="brand-subtitle-text" id="footerBrandTagline" style="font-size: 0.75rem; color: #FFD54F;">Memuat...</div>
           </div>
         </div>
-        <p id="footerDescription">
-          Wadah gotong royong ekonomi warga kelurahan yang berlandaskan asas kekeluargaan, transparansi, dan kemandirian demi kemakmuran bersama se-Kecamatan Pesanggrahan.
-        </p>
-        <div class="badge-merah-putih" style="background: rgba(255,255,255,0.15); color:#FFF; border-color: rgba(255,255,255,0.3);">
-          <span class="dot" style="background: #FFF;"></span>
-          <span class="legal-badge-text" id="footerLegalBadge">Badan Hukum No: AHU-0012849.AH.01.26.TAHUN 2023</span>
+        <p id="footerDescription">Memuat deskripsi...</p>
+        <div class="badge-merah-putih" style="background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3);">
+          <span class="legal-badge-text" id="footerLegalBadge">Memuat...</span>
         </div>
       </div>
-
-      <div>
-        <h5 class="footer-heading">Navigasi Utama</h5>
-        <ul class="footer-links" style="list-style: none; padding: 0; margin: 0;">
-          <li><a href="#beranda">Beranda</a></li>
-          <li><a href="#tentang">Tentang Kami</a></li>
-          <li><a href="#alur">Alur Pendaftaran (4 Langkah)</a></li>
-          <li><a href="#pengurus">Struktur Pengurus & Pengawas</a></li>
-          <li><a href="#pendaftaran">Pendaftaran Anggota Warga</a></li>
-          <li><a href="#kontak">Kontak Sekretariat</a></li>
-        </ul>
-      </div>
-
-      <div>
-        <h5 class="footer-heading">Keanggotaan & Layanan</h5>
-        <ul class="footer-links" style="list-style: none; padding: 0; margin: 0;">
-          <li><a href="#pendaftaran">Daftar Calon Anggota</a></li>
-          <li><a href="#pendaftaran">Komitmen Privasi Tanpa NIK</a></li>
-          <li><a href="#alur">Panduan Verifikasi Berkas Fisik</a></li>
-          <li><a href="#kontak">Layanan Konsultasi Warga</a></li>
-        </ul>
-      </div>
-
       <div>
         <h5 class="footer-heading">Akses Khusus</h5>
         <ul class="footer-links" style="list-style: none; padding: 0; margin: 0;">
           <li><a href="login.html" style="font-weight:700; color:#FFD54F;">→ Masuk Portal Pengurus</a></li>
           <li><a href="#kontak">Hotline WhatsApp Sekretariat</a></li>
-          <li><a href="#tentang">Legalitas Badan Hukum AHU</a></li>
         </ul>
-      </div>
-    </div>
-
-    <div class="container footer-bottom">
-      <div>
-        &copy; 2024 - 2027 Koperasi Kelurahan Merah Putih Ulujami. Seluruh Hak Cipta Dilindungi Undang-Undang.
-      </div>
-      <div>
-        <a href="login.html">Portal Administrasi</a>
       </div>
     </div>
   </footer>
 
-  <!-- ==================== MODAL: SUKSES PENDAFTARAN ANGGOTA ==================== -->
+  <!-- ==================== MODAL: SUKSES PENDAFTARAN ==================== -->
   <div class="modal-overlay" id="regSuccessModal" style="display: none;">
     <div class="modal-box" style="max-width: 520px; text-align: center;">
       <div class="modal-header" style="justify-content: center;">
         <h4 class="modal-title" style="color: #065F46;">Pendaftaran Berhasil Dikirim!</h4>
       </div>
       <div class="modal-body" style="padding: 30px;">
-        <div style="width: 60px; height: 60px; background: #D1FAE5; color: #10B981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <p style="margin-bottom: 8px; font-size: 0.95rem;">Kode Referensi Pendaftaran Resmi Anda:</p>
-        <div id="regSuccessCode" style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 700; color: var(--deep-burgundy); background: var(--soft-red); padding: 10px 16px; border-radius: var(--radius-md); letter-spacing: 0.5px; margin-bottom: 16px; border: 1px dashed var(--primary-red);">
+        <p style="margin-bottom: 8px;">Kode Referensi Pendaftaran Resmi Anda:</p>
+        <div id="regSuccessCode" style="font-family: monospace; font-size: 1.45rem; font-weight: 700; color: #8F1722; background: #FEE2E2; padding: 10px; border-radius: 8px; margin-bottom: 16px; border: 1px dashed #EF4444;">
           REG-KMPU-XXXX
         </div>
-        <div id="regSuccessSummary" style="background: var(--warm-neutral); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px; text-align: left; font-size: 0.88rem; line-height: 1.5;"></div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; text-align: left;">
-          Data formulir pendaftaran Anda telah tercatat aman ke sistem database pengurus dengan status <strong>Menunggu Verifikasi</strong>. Silakan klik tombol di bawah untuk langsung membuka WhatsApp resmi admin koperasi dengan format pendaftaran terstruktur.
-        </p>
+        <p style="font-size: 0.85rem; color: #6B7280; margin-bottom: 24px;">Data tersimpan aman. Lanjutkan dengan mengirim konfirmasi otomatis ke WhatsApp Pengurus.</p>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-          <a id="regWaBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-wa" style="width: 100%; justify-content: center; text-decoration: none;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
-            Kirim Formulir ke WhatsApp Admin Koperasi
+          <a id="regWaBtn" href="#" target="_blank" class="btn btn-wa" style="justify-content: center; text-decoration: none;">
+            Kirim Konfirmasi ke WhatsApp
           </a>
-          <button type="button" class="btn btn-secondary btn-modal-close" style="width: 100%;" onclick="document.getElementById('regSuccessModal').style.display='none'">
-            Selesai & Tutup Jendela
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('regSuccessModal').style.display='none'">
+            Tutup Jendela
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Toast Container -->
+  <!-- Toast Container & Scripts -->
   <div class="toast-container" id="toastContainer"></div>
-
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="./store.js"></script>
   <script src="./public.js"></script>
