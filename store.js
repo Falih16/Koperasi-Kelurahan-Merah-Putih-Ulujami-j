@@ -680,6 +680,81 @@ END $$;
     isValidAnonKey,
     Templates,
 
+    // Helper Kompresi Berkas Gambar Berbasis Canvas (Hemat Kuota localStorage & Render 0ms)
+    compressImage(file, options = {}) {
+      return new Promise((resolve, reject) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+          return reject(new Error('Berkas yang dipilih bukan berkas gambar valid.'));
+        }
+
+        // Berkas vektor SVG tidak memerlukan pemrosesan raster canvas
+        if (file.type === 'image/svg+xml') {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+          return;
+        }
+
+        const maxWidth = options.maxWidth || 1000;
+        const maxHeight = options.maxHeight || 1000;
+        const quality = options.quality !== undefined ? options.quality : 0.82;
+
+        const reader = new FileReader();
+        reader.onerror = (err) => reject(err);
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Gagal memuat berkas gambar ke kanvas.'));
+          img.onload = () => {
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+
+            // Hitung skala aspect ratio proporsional
+            if (width > maxWidth || height > maxHeight) {
+              if (width / height > maxWidth / maxHeight) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+              } else {
+                width = Math.round((width * maxHeight) / height);
+                height = maxHeight;
+              }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              return resolve(e.target.result); // Fallback ke raw data jika canvas gagal
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            const isPng = file.type === 'image/png';
+            if (isPng && options.keepPng) {
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/png'));
+            } else {
+              // Beri latar belakang putih solid agar area transparan tidak menjadi hitam saat dikonversi ke JPEG
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, width, height);
+              ctx.drawImage(img, 0, 0, width, height);
+              let result = canvas.toDataURL('image/jpeg', quality);
+
+              // Jika dataURL masih lebih dari 450KB, turunkan kompresi ke 0.70 agar hemat memori
+              if (result.length > 450 * 1024) {
+                result = canvas.toDataURL('image/jpeg', 0.70);
+              }
+              resolve(result);
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    },
+
     // Inisialisasi awal
     init() {
       // 1. Pastikan cache lokal selalu terisi (0ms instant render)

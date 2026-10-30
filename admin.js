@@ -61,6 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
     prodModal: document.getElementById('prodModal'),
     prodModalTitle: document.getElementById('prodModalTitle'),
     prodForm: document.getElementById('prodForm'),
+    prodFormFileInput: document.getElementById('prodFormFileInput'),
+    prodFormImgPreview: document.getElementById('prodFormImgPreview'),
+    prodFormImgUrl: document.getElementById('prodFormImgUrl'),
     // Modul Kategori
     catTableBody: document.getElementById('catTableBody'),
     btnAddCategory: document.getElementById('btnAddCategory'),
@@ -71,11 +74,17 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAddUnit: document.getElementById('btnAddUnit'),
     unitModal: document.getElementById('unitModal'),
     unitForm: document.getElementById('unitForm'),
+    unitFormFileInput: document.getElementById('unitFormFileInput'),
+    unitFormImgPreview: document.getElementById('unitFormImgPreview'),
+    unitFormImg: document.getElementById('unitFormImg'),
     // Modul Pengurus
     boardTableBody: document.getElementById('boardTableBody'),
     btnAddBoard: document.getElementById('btnAddBoard'),
     boardModal: document.getElementById('boardModal'),
     boardForm: document.getElementById('boardForm'),
+    boardFormFileInput: document.getElementById('boardFormFileInput'),
+    boardFormPhotoPreview: document.getElementById('boardFormPhotoPreview'),
+    boardFormPhoto: document.getElementById('boardFormPhoto'),
     // Modul Identitas & Logo
     settingsForm: document.getElementById('settingsForm'),
     btnResetIdentity: document.getElementById('btnResetIdentity'),
@@ -544,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
       descInput.value = prod.description || '';
       imgUrlInput.value = prod.image || '';
       featuredCheck.checked = !!prod.featured;
-      if (previewImg) previewImg.src = prod.image || '';
+      if (previewImg) previewImg.src = prod.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';
     } else {
       if (elements.prodModalTitle) elements.prodModalTitle.textContent = 'Tambah Produk Baru';
       elements.prodForm.reset();
@@ -554,21 +563,34 @@ document.addEventListener('DOMContentLoaded', () => {
       imgUrlInput.value = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';
     }
 
+    if (elements.prodFormFileInput) elements.prodFormFileInput.value = '';
     elements.prodModal.classList.add('active');
   }
 
-  // Upload Foto Produk File -> Base64
-  const prodFileInput = document.getElementById('prodFormFileInput');
-  if (prodFileInput) {
-    prodFileInput.addEventListener('change', (e) => {
+  // Upload Foto Produk File -> Base64 dengan Canvas Compression
+  if (elements.prodFormFileInput) {
+    elements.prodFormFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          document.getElementById('prodFormImgUrl').value = event.target.result;
-          document.getElementById('prodFormImgPreview').src = event.target.result;
-        };
-        reader.readAsDataURL(file);
+        Store.compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 })
+          .then(dataUrl => {
+            if (elements.prodFormImgUrl) elements.prodFormImgUrl.value = dataUrl;
+            if (elements.prodFormImgPreview) elements.prodFormImgPreview.src = dataUrl;
+            showToast('Foto produk berhasil dimuat & dikompresi.', 'info');
+          })
+          .catch(err => {
+            console.error('[Prod Image Compress Error]:', err);
+            showToast('Gagal memproses berkas gambar produk.', 'warning');
+          });
+      }
+    });
+  }
+
+  // Live Preview URL Foto Produk Langsung
+  if (elements.prodFormImgUrl) {
+    elements.prodFormImgUrl.addEventListener('input', (e) => {
+      if (elements.prodFormImgPreview) {
+        elements.prodFormImgPreview.src = e.target.value.trim() || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500';
       }
     });
   }
@@ -806,6 +828,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const descInput = document.getElementById('unitFormDesc');
     const featInput = document.getElementById('unitFormFeatures');
     const imgInput = document.getElementById('unitFormImg');
+    const previewImg = elements.unitFormImgPreview || document.getElementById('unitFormImgPreview');
+    const fileInput = elements.unitFormFileInput || document.getElementById('unitFormFileInput');
+
+    if (fileInput) fileInput.value = '';
 
     if (unitId) {
       const u = Store.getUnitById(unitId);
@@ -818,14 +844,44 @@ document.addEventListener('DOMContentLoaded', () => {
       contactInput.value = u.contact;
       descInput.value = u.description;
       featInput.value = (u.features || []).join('\n');
-      imgInput.value = u.image;
+      imgInput.value = u.image || '';
+      if (previewImg) previewImg.src = u.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=700';
     } else {
       elements.unitForm.reset();
       idInput.value = '';
       imgInput.value = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=700';
+      if (previewImg) previewImg.src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=700';
     }
 
     elements.unitModal.classList.add('active');
+  }
+
+  // Upload Foto Unit Usaha File -> Base64 dengan Canvas Compression
+  if (elements.unitFormFileInput) {
+    elements.unitFormFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        Store.compressImage(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.82 })
+          .then(dataUrl => {
+            if (elements.unitFormImg) elements.unitFormImg.value = dataUrl;
+            if (elements.unitFormImgPreview) elements.unitFormImgPreview.src = dataUrl;
+            showToast('Foto unit usaha berhasil dimuat & dikompresi.', 'info');
+          })
+          .catch(err => {
+            console.error('[Unit Image Compress Error]:', err);
+            showToast('Gagal memproses berkas gambar unit.', 'warning');
+          });
+      }
+    });
+  }
+
+  // Live Preview URL Foto Unit Usaha Langsung
+  if (elements.unitFormImg) {
+    elements.unitFormImg.addEventListener('input', (e) => {
+      if (elements.unitFormImgPreview) {
+        elements.unitFormImgPreview.src = e.target.value.trim() || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=700';
+      }
+    });
   }
 
   if (elements.btnAddUnit) {
@@ -913,6 +969,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ordInput = document.getElementById('boardFormOrder');
     const bioInput = document.getElementById('boardFormBio');
     const photoInput = document.getElementById('boardFormPhoto');
+    const previewPhoto = elements.boardFormPhotoPreview || document.getElementById('boardFormPhotoPreview');
+    const fileInput = elements.boardFormFileInput || document.getElementById('boardFormFileInput');
+
+    if (fileInput) fileInput.value = '';
 
     if (boardId) {
       const board = Store.getBoard();
@@ -924,15 +984,45 @@ document.addEventListener('DOMContentLoaded', () => {
       perInput.value = m.period;
       ordInput.value = m.order || 1;
       bioInput.value = m.bio;
-      photoInput.value = m.photo;
+      photoInput.value = m.photo || '';
+      if (previewPhoto) previewPhoto.src = m.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400';
     } else {
       elements.boardForm.reset();
       idInput.value = '';
       ordInput.value = 1;
       photoInput.value = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400';
+      if (previewPhoto) previewPhoto.src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400';
     }
 
     elements.boardModal.classList.add('active');
+  }
+
+  // Upload Foto Pengurus File -> Base64 dengan Canvas Compression
+  if (elements.boardFormFileInput) {
+    elements.boardFormFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        Store.compressImage(file, { maxWidth: 800, maxHeight: 800, quality: 0.82 })
+          .then(dataUrl => {
+            if (elements.boardFormPhoto) elements.boardFormPhoto.value = dataUrl;
+            if (elements.boardFormPhotoPreview) elements.boardFormPhotoPreview.src = dataUrl;
+            showToast('Foto profil pengurus berhasil dimuat & dikompresi.', 'info');
+          })
+          .catch(err => {
+            console.error('[Board Photo Compress Error]:', err);
+            showToast('Gagal memproses berkas foto pengurus.', 'warning');
+          });
+      }
+    });
+  }
+
+  // Live Preview URL Foto Pengurus Langsung
+  if (elements.boardFormPhoto) {
+    elements.boardFormPhoto.addEventListener('input', (e) => {
+      if (elements.boardFormPhotoPreview) {
+        elements.boardFormPhotoPreview.src = e.target.value.trim() || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400';
+      }
+    });
   }
 
   if (elements.btnAddBoard) {
@@ -1004,6 +1094,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const shortName = document.getElementById('setShortName')?.value.trim() || profile.shortName || 'KKMP Ulujami';
     if (elements.previewDesktopName) elements.previewDesktopName.textContent = shortName;
     if (elements.previewMobileName) elements.previewMobileName.textContent = shortName;
+
+    // Sinkronkan Favicon Tab Admin
+    const favicon = document.querySelector("link[rel*='icon']");
+    if (favicon && logoSrc) {
+      favicon.href = logoSrc;
+    }
   }
 
   if (elements.sliderDesktopScale) {
@@ -1024,17 +1120,21 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.logoUrlInput.addEventListener('input', updateLogoSimulators);
   }
 
-  // Upload Logo Kustom File -> Base64
+  // Upload Logo Kustom File -> Base64 dengan Canvas Compression
   if (elements.logoFileInput) {
     elements.logoFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (elements.logoUrlInput) elements.logoUrlInput.value = event.target.result;
-          updateLogoSimulators();
-        };
-        reader.readAsDataURL(file);
+        Store.compressImage(file, { maxWidth: 600, maxHeight: 600, keepPng: true })
+          .then(dataUrl => {
+            if (elements.logoUrlInput) elements.logoUrlInput.value = dataUrl;
+            updateLogoSimulators();
+            showToast('Logo koperasi berhasil dimuat & dikompresi.', 'info');
+          })
+          .catch(err => {
+            console.error('[Logo Compress Error]:', err);
+            showToast('Gagal memproses berkas logo.', 'warning');
+          });
       }
     });
   }
@@ -1211,16 +1311,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Supabase Realtime Listener (Notifikasi Pendaftaran Masuk)
+  // Supabase Realtime Listener (Notifikasi Pendaftaran Masuk & Auto-Sync)
   function setupSupabaseRealtime() {
     const client = Store.getSupabaseClient();
     if (!client || !Store.isCloudEnabled()) return;
 
     try {
       client.channel('realtime:kmp_registrations')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kmp_registrations' }, (payload) => {
-          const reg = payload.new;
-          showToast(`Pendaftaran Baru Masuk: ${reg.full_name} (${reg.ref_code})`, 'success');
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'kmp_registrations' }, (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const reg = payload.new;
+            showToast(`Pendaftaran Baru Masuk: ${reg.full_name} (${reg.ref_code})`, 'success');
+          }
           Store.syncFromSupabase();
         })
         .subscribe();

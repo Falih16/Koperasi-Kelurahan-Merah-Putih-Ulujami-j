@@ -101,6 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Sinkronisasi Favicon Dinamis Sesuai Logo Resmi
+    const favicon = document.querySelector("link[rel*='icon']");
+    if (favicon && logoSrc) {
+      favicon.href = logoSrc;
+    }
+
     // Nama & Tagline
     elements.brandTitles.forEach(el => el.textContent = profile.shortName || 'KKMP Ulujami');
     elements.brandSubtitles.forEach(el => el.textContent = profile.name);
@@ -471,21 +477,39 @@ document.addEventListener('DOMContentLoaded', () => {
       // Validasi nomor WhatsApp
       const cleaned = phone.replace(/[^0-9]/g, '');
       if (cleaned.length < 9) {
-        showToast('Format nomor WhatsApp tidak valid.', 'warning');
+        showToast('Format nomor WhatsApp tidak valid (minimal 9 digit).', 'warning');
         return;
       }
 
-      // Simpan ke Store
+      // Simpan ke Store (Auto-Persist Local-first + Cloud Supabase)
       const savedReg = Store.createRegistration({ fullName, phone, rtrw, reason });
 
-      // Siapkan Pesan WhatsApp
+      // Siapkan Pesan WhatsApp Terstruktur
       const profile = Store.getProfile();
       const waMsg = Store.Templates.memberRegistration(savedReg);
       const waUrl = Store.buildWhatsAppUrl(profile.whatsapp, waMsg);
 
-      // Tampilkan Modal Sukses Pendaftaran
+      // Tampilkan Modal Sukses Pendaftaran & Rangkuman Data
       if (elements.regSuccessModal && elements.regSuccessCode && elements.regWaBtn) {
         elements.regSuccessCode.textContent = savedReg.refCode;
+
+        const summaryEl = document.getElementById('regSuccessSummary');
+        if (summaryEl) {
+          summaryEl.innerHTML = `
+            <div style="font-weight: 700; color: var(--deep-burgundy); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Rangkuman Data Calon Anggota:</div>
+            <div style="display: grid; grid-template-columns: 110px 1fr; gap: 4px;">
+              <span style="color: var(--text-muted);">Nama Lengkap:</span>
+              <strong>${Store.sanitize(savedReg.fullName)}</strong>
+              <span style="color: var(--text-muted);">No. WhatsApp:</span>
+              <span>${Store.sanitize(savedReg.phone)}</span>
+              <span style="color: var(--text-muted);">Domisili:</span>
+              <span>${Store.sanitize(savedReg.rtrw)}</span>
+              <span style="color: var(--text-muted);">Alasan Minat:</span>
+              <span>${Store.sanitize(savedReg.reason)}</span>
+            </div>
+          `;
+        }
+
         elements.regWaBtn.onclick = () => {
           window.open(waUrl, '_blank');
         };
@@ -495,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Reset Formulir
       elements.regForm.reset();
-      showToast('Formulir pendaftaran berhasil dikirim!', 'success');
+      showToast('Formulir pendaftaran berhasil diproses & disimpan!', 'success');
     });
   }
 
@@ -557,6 +581,15 @@ document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
   renderBoard();
   setupRegistrationFlow();
+
+  // Dengarkan Pembaruan Data Cloud dari Supabase
+  window.addEventListener('kmp_data_synced', () => {
+    renderProfile();
+    renderUnits();
+    renderCategoryFilters();
+    renderProducts();
+    renderBoard();
+  });
 
   // Dengarkan perubahan ukuran jendela untuk penyesuaian tinggi logo mobile/desktop
   window.addEventListener('resize', () => {
