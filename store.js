@@ -1,6 +1,7 @@
 /**
  * store.js - Pusat Data Persisten (Hybrid: LocalStorage & Supabase Cloud PostgreSQL)
  * Koperasi Kelurahan Merah Putih Ulujami
+ * Fokus: Portal Pendaftaran Anggota Berbasis WhatsApp & Full Custom Image CMS
  */
 
 (function (window) {
@@ -9,9 +10,6 @@
   // Kunci Penyimpanan localStorage
   const KEYS = {
     PROFILE: 'kmp_profile',
-    CATEGORIES: 'kmp_categories',
-    UNITS: 'kmp_business_units',
-    PRODUCTS: 'kmp_products',
     BOARD: 'kmp_board_members',
     REGISTRATIONS: 'kmp_registrations',
     AUTH_SESSION: 'kmp_auth_session',
@@ -20,10 +18,11 @@
     SUPABASE_CONFIG: 'kmp_supabase_config'
   };
 
-  // Skrip SQL Lengkap Siap Pakai untuk Supabase SQL Editor
+  // Skrip SQL Lengkap Siap Pakai untuk Supabase SQL Editor (Ramping: Profil, Pengurus, & Pendaftaran)
   const SUPABASE_SQL_SCHEMA = `-- SKRIP SKEMA DATABASE KOPERASI MERAH PUTIH ULUJAMI (SUPABASE POSTGRESQL)
+-- Fokus: Portal Pendaftaran Warga & Full Image CMS
 
--- 1. Tabel Profil Koperasi
+-- 1. Tabel Profil Koperasi & Manajemen Aset Gambar CMS
 CREATE TABLE IF NOT EXISTS kmp_profile (
   id INT PRIMARY KEY DEFAULT 1,
   name TEXT NOT NULL,
@@ -40,53 +39,21 @@ CREATE TABLE IF NOT EXISTS kmp_profile (
   logo_url TEXT,
   logo_scale_desktop INT DEFAULT 48,
   logo_scale_mobile INT DEFAULT 38,
+  hero_image_url TEXT,
+  about_banner_url TEXT,
+  cta_banner_url TEXT,
   stats JSONB,
   mission JSONB,
   values JSONB,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Tabel Kategori Produk
-CREATE TABLE IF NOT EXISTS kmp_categories (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL
-);
+-- Pastikan kolom aset gambar ada jika tabel profil sudah pernah dibuat sebelumnya
+ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS hero_image_url TEXT;
+ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS about_banner_url TEXT;
+ALTER TABLE kmp_profile ADD COLUMN IF NOT EXISTS cta_banner_url TEXT;
 
--- 3. Tabel Unit Usaha Mandiri
-CREATE TABLE IF NOT EXISTS kmp_business_units (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  category TEXT,
-  pic TEXT,
-  hours TEXT,
-  contact TEXT,
-  description TEXT,
-  features JSONB,
-  icon TEXT,
-  image TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Tabel Katalog Produk (unit_id fleksibel nullable tanpa foreign key kaku)
-CREATE TABLE IF NOT EXISTS kmp_products (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  category TEXT,
-  unit_id TEXT,
-  price BIGINT NOT NULL DEFAULT 0,
-  stock INT DEFAULT 0,
-  description TEXT,
-  image TEXT,
-  featured BOOLEAN DEFAULT FALSE,
-  is_published BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Lepaskan foreign key unit_id jika sebelumnya pernah dibuat agar tidak memblokir penambahan produk
-ALTER TABLE kmp_products DROP CONSTRAINT IF EXISTS kmp_products_unit_id_fkey;
-
--- 5. Tabel Struktur Pengurus
+-- 2. Tabel Struktur Pengurus & Pengawas
 CREATE TABLE IF NOT EXISTS kmp_board_members (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -97,7 +64,7 @@ CREATE TABLE IF NOT EXISTS kmp_board_members (
   photo TEXT
 );
 
--- 6. Tabel Pendaftaran Anggota Warga (Privasi & Integritas Tinggi)
+-- 3. Tabel Pendaftaran Anggota Warga (Privasi & Integritas Tinggi)
 CREATE TABLE IF NOT EXISTS kmp_registrations (
   id TEXT PRIMARY KEY,
   ref_code TEXT NOT NULL,
@@ -111,31 +78,16 @@ CREATE TABLE IF NOT EXISTS kmp_registrations (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Pastikan kolom penting ada pada tabel yang sudah terbuat sebelumnya
 ALTER TABLE kmp_registrations ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
 ALTER TABLE kmp_registrations ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
-ALTER TABLE kmp_products ADD COLUMN IF NOT EXISTS unit_id TEXT;
-ALTER TABLE kmp_products ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT TRUE;
 
 -- Aktifkan Row Level Security (RLS) & Berikan Akses Publik (Anon & Authenticated)
 ALTER TABLE kmp_profile ENABLE ROW LEVEL SECURITY;
-ALTER TABLE kmp_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE kmp_business_units ENABLE ROW LEVEL SECURITY;
-ALTER TABLE kmp_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kmp_board_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kmp_registrations ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Publik Akses Profil" ON kmp_profile;
 CREATE POLICY "Publik Akses Profil" ON kmp_profile FOR ALL TO public USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Publik Akses Kategori" ON kmp_categories;
-CREATE POLICY "Publik Akses Kategori" ON kmp_categories FOR ALL TO public USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Publik Akses Unit" ON kmp_business_units;
-CREATE POLICY "Publik Akses Unit" ON kmp_business_units FOR ALL TO public USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Publik Akses Produk" ON kmp_products;
-CREATE POLICY "Publik Akses Produk" ON kmp_products FOR ALL TO public USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Publik Akses Pengurus" ON kmp_board_members;
 CREATE POLICY "Publik Akses Pengurus" ON kmp_board_members FOR ALL TO public USING (true) WITH CHECK (true);
@@ -143,7 +95,7 @@ CREATE POLICY "Publik Akses Pengurus" ON kmp_board_members FOR ALL TO public USI
 DROP POLICY IF EXISTS "Publik Akses Registrasi" ON kmp_registrations;
 CREATE POLICY "Publik Akses Registrasi" ON kmp_registrations FOR ALL TO public USING (true) WITH CHECK (true);
 
--- Realtime publication untuk notifikasi pendaftaran masuk
+-- Realtime publication untuk notifikasi pendaftaran masuk seketika
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -219,198 +171,27 @@ END $$;
     logoUrl: '',
     logoScaleDesktop: 48,
     logoScaleMobile: 38,
+    heroImageUrl: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80',
+    aboutBannerUrl: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&auto=format&fit=crop&q=80',
+    ctaBannerUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80',
     stats: {
       activeMembers: 348,
-      businessUnits: 4,
-      umkmPartners: 52,
-      totalAsset: 'Rp 1,45 Miliar'
+      rwCount: 9,
+      satisfaction: '100%',
+      assetTurnover: 'Rp 1,45 Miliar'
     },
     mission: [
-      'Menyediakan pasokan pangan pokok berkualitas dengan harga terjangkau dan stabil bagi seluruh warga Ulujami.',
-      'Membina, menginkubasi, serta memasarkan produk-produk UMKM warga RT dan RW secara berkelanjutan.',
-      'Menyediakan layanan utilitas dan transaksi finansial mikro yang modern, transparan, dan terpercaya.',
-      'Mengembangkan jaringan logistik mandiri antar-warga guna memangkas rantai pasok tengkulak.'
+      'Membangun jejaring solidaritas sosial dan kemandirian ekonomi keluarga se-Kelurahan Ulujami.',
+      'Menyediakan fasilitas pendaftaran dan keanggotaan koperasi yang transparan, mudah, dan aman.',
+      'Mengelola permodalan dan simpanan anggota dengan tata kelola profesional dan akuntabel.',
+      'Mewujudkan kemakmuran bersama melalui pembagian Sisa Hasil Usaha (SHU) tahunan yang adil.'
     ],
     values: [
-      { title: 'Gotong Royong', desc: 'Bahu-membahu dari warga, oleh warga, dan untuk kemakmuran warga kelurahan.' },
-      { title: 'Transparansi Penuh', desc: 'Laporan keuangan dan tata kelola unit usaha terbuka untuk seluruh anggota.' },
-      { title: 'Profesional & Andal', desc: 'Standar mutu pelayanan modern dengan kehangatan silaturahmi tetangga.' }
+      { title: 'Gotong Royong', desc: 'Bahu-membahu dari warga, oleh warga, dan untuk kemakmuran seluruh warga kelurahan.' },
+      { title: 'Transparansi Penuh', desc: 'Laporan pertanggungjawaban dan tata kelola terbuka untuk seluruh anggota dalam RAT.' },
+      { title: 'Profesional & Andal', desc: 'Pelayanan modern berorientasi amanah dengan kehangatan silaturahmi tetangga.' }
     ]
   };
-
-  const SEED_CATEGORIES = [
-    { id: 'cat-sembako', name: 'Sembako & Pangan Pokok', slug: 'sembako' },
-    { id: 'cat-kuliner', name: 'Kuliner & Kudapan UMKM', slug: 'kuliner' },
-    { id: 'cat-kerajinan', name: 'Kriya & Kerajinan Tangan', slug: 'kerajinan' },
-    { id: 'cat-jasa', name: 'Layanan Jasa & PPOB', slug: 'jasa' },
-    { id: 'cat-pertanian', name: 'Urban Farming & Sayur Segar', slug: 'pertanian' }
-  ];
-
-  const SEED_UNITS = [
-    {
-      id: 'unit-sembako',
-      name: 'Toko Sembako Warga Merah Putih',
-      category: 'Retail Pangan Pokok',
-      pic: 'Bpk. Rahmat Hidayat (Manajer Distribusi)',
-      hours: '07.30 - 20.30 WIB',
-      contact: '081289123456',
-      description: 'Menyediakan beras kualitas super, minyak goreng resmi HET pemerintah, gula pasir murni, telur ayam ras langsung dari peternak binaan, tepung terigu, dan aneka bahan pokok harian dengan jaminan harga adil pro-warga.',
-      features: [
-        'Harga stabil terkendali anti-spekulan',
-        'Gratis antar ke rumah warga untuk belanja di atas Rp 100.000',
-        'Program Tebus Murah Bulanan Khusus Anggota Terdaftar'
-      ],
-      icon: 'storefront',
-      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=700&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'unit-umkm',
-      name: 'Galeri UMKM Kelurahan Ulujami',
-      category: 'Sentra Kurasi & Promosi Produk Lokal',
-      pic: 'Ibu Siti Fatimah (Koordinator Pemberdayaan)',
-      hours: '09.00 - 18.00 WIB',
-      contact: '081289123457',
-      description: 'Pusat etalase dan promosi produk unggulan warga dari 9 RW di Kelurahan Ulujami. Mulai dari aneka camilan gurih, sambal botol khas, frozen food halal, hingga batik corak Betawi Pesanggrahan dan kriya rajut bernilai estetika tinggi.',
-      features: [
-        'Fasilitasi legalitas P-IRT, Sertifikasi Halal, dan NIB UMKM',
-        'Etalase fisik toko di kantor sekretariat & promosi digital live',
-        'Sistem konsinyasi transparan dengan pencairan berkala'
-      ],
-      icon: 'shopping_bag',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=700&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'unit-jasa',
-      name: 'Layanan Jasa & PPOB Terpadu',
-      category: 'Finansial Mikro & Layanan Utilitas',
-      pic: 'Sdr. Dimas Prasetyo (Supervisor Layanan)',
-      hours: '08.00 - 21.00 WIB',
-      contact: '081289123458',
-      description: 'Solusi satu pintu kebutuhan pembayaran tagihan bulanan dan transaksi keuangan warga: Token Listrik PLN, Tagihan Air PAM Jaya, Iuran BPJS Kesehatan, Pulsa/Data All Operator, Transfer Uang Antar-Bank, serta administrasi digital kelurahan.',
-      features: [
-        'Biaya administrasi paling hemat se-lingkungan Ulujami',
-        'Buka hingga malam hari untuk kenyamanan pulang kerja',
-        'Struk bukti transaksi fisik & bukti digital WhatsApp instan'
-      ],
-      icon: 'credit_card',
-      image: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=700&auto=format&fit=crop&q=80'
-    },
-    {
-      id: 'unit-logistik',
-      name: 'Logistik Distribusi Lokal Ulujami',
-      category: 'Rantai Pasok & Antar Cepat Lingkungan',
-      pic: 'Bpk. Bambang Supeno (Kepala Operasional)',
-      hours: '06.00 - 17.00 WIB',
-      contact: '081289123459',
-      description: 'Unit armada pengantaran pasokan kebutuhan pokok dari distributor ke warung-warung tetangga se-Kelurahan Ulujami. Beroperasi setiap fajar untuk memangkas jalur tengkulak dan menjaga kestabilan harga pangan lingkungan.',
-      features: [
-        'Armada kendaraan operasional Tossa dan roda dua kelurahan',
-        'Jadwal pasokan subuh tepat waktu bagi pedagang sarapan & warteg',
-        'Tarif pengantaran tersubsidi untuk anggota resmi koperasi'
-      ],
-      icon: 'local_shipping',
-      image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=700&auto=format&fit=crop&q=80'
-    }
-  ];
-
-  const SEED_PRODUCTS = [
-    {
-      id: 'prod-1',
-      name: 'Beras Pandan Wangi Super 5 Kg',
-      category: 'sembako',
-      unitId: 'unit-sembako',
-      price: 74500,
-      stock: 125,
-      description: 'Beras premium asli Cianjur tanpa pemutih, tanpa pewangi buatan, dan tanpa pengawet. Pulen, harum alami, dan higienis bersertifikasi.',
-      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&auto=format&fit=crop&q=80',
-      featured: true,
-      isPublished: true
-    },
-    {
-      id: 'prod-2',
-      name: 'Minyak Goreng Minyakita Pouch 2 Liter',
-      category: 'sembako',
-      unitId: 'unit-sembako',
-      price: 32000,
-      stock: 240,
-      description: 'Minyak goreng kelapa sawit higienis alokasi resmi pemerintah untuk warga, jernih, tahan panas, dan kaya Vitamin A.',
-      image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=600&auto=format&fit=crop&q=80',
-      featured: true,
-      isPublished: true
-    },
-    {
-      id: 'prod-3',
-      name: 'Telur Ayam Negeri Segar Pilihan 1 Kg',
-      category: 'sembako',
-      unitId: 'unit-sembako',
-      price: 28000,
-      stock: 80,
-      description: 'Telur ayam ras segar dari peternakan binaan. Cangkang bersih, isi padat, dan dipanen setiap pagi.',
-      image: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=600&auto=format&fit=crop&q=80',
-      featured: false,
-      isPublished: true
-    },
-    {
-      id: 'prod-4',
-      name: 'Kripik Tempe Renyah Gurih Bu Hj. Nurul',
-      category: 'kuliner',
-      unitId: 'unit-umkm',
-      price: 18000,
-      stock: 45,
-      description: 'Produk olahan UMKM binaan RW 02 Ulujami. Irisan tempe kedelai murni berbalut rempah ketumbar dan daun jeruk yang sangat gurih tanpa MSG berlebih.',
-      image: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=600&auto=format&fit=crop&q=80',
-      featured: true,
-      isPublished: true
-    },
-    {
-      id: 'prod-5',
-      name: 'Sambal Cakalang Asap Ulujami Spesial',
-      category: 'kuliner',
-      unitId: 'unit-umkm',
-      price: 29000,
-      stock: 35,
-      description: 'Sambal racikan rumahan Bu Dewi (RW 04) dengan suwiran ikan cakalang asap pilihan, cabe rawit segar, dan minyak kelapa asli. Siap santap.',
-      image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&auto=format&fit=crop&q=80',
-      featured: true,
-      isPublished: true
-    },
-    {
-      id: 'prod-6',
-      name: 'Tas Anyam Rajut Motif Pesanggrahan',
-      category: 'kerajinan',
-      unitId: 'unit-umkm',
-      price: 65000,
-      stock: 18,
-      description: 'Karya kerajinan tangan kelompok ibu-ibu PKK RW 06 Ulujami berbahan tali kur kuat dengan perpaduan warna Merah-Putih elegan dan tahan air.',
-      image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=600&auto=format&fit=crop&q=80',
-      featured: true,
-      isPublished: true
-    },
-    {
-      id: 'prod-7',
-      name: 'Paket Sayur Hidroponik Segar RW 03',
-      category: 'pertanian',
-      unitId: 'unit-sembako',
-      price: 15000,
-      stock: 30,
-      description: 'Panen sayur hidroponik harian (Pakcoy, Selada, Bayam Hijau) dari kebun atap warga RW 03. Bebas pestisida kimia dan dipetik saat order tiba.',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80',
-      featured: false,
-      isPublished: true
-    },
-    {
-      id: 'prod-8',
-      name: 'Token Listrik PLN Prabayar (PPOB Resmi)',
-      category: 'jasa',
-      unitId: 'unit-jasa',
-      price: 22500,
-      stock: 999,
-      description: 'Pengisian pulsa listrik PLN 20.000 dengan biaya admin termurah (Rp 2.500). Kode token 20 digit dikirim instan ke WhatsApp Anda.',
-      image: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=600&auto=format&fit=crop&q=80',
-      featured: false,
-      isPublished: true
-    }
-  ];
 
   const SEED_BOARD = [
     {
@@ -467,61 +248,51 @@ END $$;
       fullName: 'Agus Supriyadi',
       phone: '081298765432',
       rtrw: 'RT 03 / RW 01',
-      reason: 'Ingin belanja sembako murah untuk kebutuhan warung nasi dan menabung simpanan wajib secara teratur.',
+      reason: 'Ingin berpartisipasi dalam program simpanan gotong royong dan memajukan kegiatan ekonomi kelurahan.',
       date: '2024-10-20 09:15',
       status: 'Menunggu Verifikasi',
-      notes: 'Sudah dihubungi via WA. Dijadwalkan hadir ke kantor hari Senin pukul 10.00 WIB.'
+      notes: 'Calon anggota siap hadir verifikasi berkas di sekretariat.'
     },
     {
       id: 'reg-2',
-      refCode: 'REG-KMPU-20241021-1248',
-      fullName: 'Endang Sulastri',
-      phone: '085711223344',
-      rtrw: 'RT 07 / RW 04',
-      reason: 'Memasarkan produk keripik pisang madu dan aneka kue basah ke Galeri UMKM Kelurahan.',
+      refCode: 'REG-KMPU-20241021-4920',
+      fullName: 'Sri Wahyuni, S.Pd',
+      phone: '081311223344',
+      rtrw: 'RT 05 / RW 03',
+      reason: 'Berminat menjadi anggota aktif dan mengikuti musyawarah tahunan warga.',
       date: '2024-10-21 14:30',
       status: 'Diverifikasi',
-      notes: 'Sampel produk olahan sudah diuji rasa dan kemasannya memenuhi standar P-IRT.'
+      notes: 'KTP dan KK sudah dicocokkan fisik. Buku anggota dalam proses cetak.'
     },
     {
       id: 'reg-3',
       refCode: 'REG-KMPU-20241022-7714',
-      fullName: 'Budi Santoso',
-      phone: '081399887766',
-      rtrw: 'RT 02 / RW 05',
-      reason: 'Mendukung gerakan gotong royong ekonomi warga serta memfasilitasi kebutuhan PPOB di lingkungan RT.',
-      date: '2024-10-22 10:05',
+      fullName: 'Dedi Kurniawan',
+      phone: '085712345678',
+      rtrw: 'RT 02 / RW 06',
+      reason: 'Ingin ikut memajukan ekonomi warga lingkungan Ulujami secara bersama-sama.',
+      date: '2024-10-22 11:05',
       status: 'Selesai',
-      notes: 'Buku anggota dan kartu simpanan fisik telah diserahkan di sekretariat.'
-    },
-    {
-      id: 'reg-4',
-      refCode: 'REG-KMPU-20241023-4521',
-      fullName: 'Sri Wahyuni',
-      phone: '087812349876',
-      rtrw: 'RT 05 / RW 02',
-      reason: 'Ingin mendapatkan harga pasokan beras dan minyak langsung dari distributor untuk konsumsi keluarga besar.',
-      date: '2024-10-23 16:45',
-      status: 'Menunggu Verifikasi',
-      notes: 'Pendaftaran baru masuk melalui formulir publik website.'
+      notes: 'Buku anggota resmi diserahkan. Telah terdaftar anggota penuh.'
     }
   ];
 
-  // Helper Sanitasi & Keamanan String (Cegah XSS)
+  // Helper Sanitasi XSS Ringan
   function sanitize(str) {
-    if (typeof str !== 'string') return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+    if (str === null || str === undefined) return '';
+    const temp = document.createElement('div');
+    temp.textContent = String(str);
+    return temp.innerHTML;
   }
 
   // Format Mata Uang Rupiah
-  function formatRupiah(amount) {
-    const num = Number(amount) || 0;
-    return 'Rp ' + num.toLocaleString('id-ID');
+  function formatRupiah(number) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(number || 0);
   }
 
   // Generator Kode Registrasi Unik: REG-KMPU-YYYYMMDD-XXXX
@@ -544,20 +315,19 @@ END $$;
     let cleaned = phone.replace(/[^0-9]/g, '');
     if (cleaned.startsWith('0')) {
       cleaned = '62' + cleaned.substring(1);
-    } else if (!cleaned.startsWith('62')) {
+    } else if (cleaned.startsWith('8')) {
       cleaned = '62' + cleaned;
     }
     return cleaned;
   }
 
-  // Bangun URL WhatsApp Aman
-  function buildWhatsAppUrl(phoneNumber, messageText) {
-    const cleanNum = cleanPhoneWA(phoneNumber);
-    const encoded = encodeURIComponent(messageText);
-    return `https://wa.me/${cleanNum}?text=${encoded}`;
+  // Pembuat Tautan URL WhatsApp Resmi
+  function buildWhatsAppUrl(targetPhone, message) {
+    const cleanPhone = cleanPhoneWA(targetPhone);
+    const encoded = encodeURIComponent(message);
+    return `https://wa.me/${cleanPhone}?text=${encoded}`;
   }
 
-  // Helper Validasi Kredensial URL & Key Supabase
   function isValidHttpUrl(str) {
     if (!str || typeof str !== 'string') return false;
     try {
@@ -596,24 +366,6 @@ END $$;
 
   // Helper Template Pesan WhatsApp
   const Templates = {
-    productOrder(product, qty, buyerName, buyerAddress, note) {
-      const total = (product.price || 0) * (qty || 1);
-      return (
-        `Halo Admin Koperasi Merah Putih Ulujami,\n\n` +
-        `Saya ingin memesan produk berikut melalui website resmi:\n\n` +
-        `*Detail Pesanan:*\n` +
-        `• Produk: ${product.name}\n` +
-        `• Harga Satuan: ${formatRupiah(product.price)}\n` +
-        `• Jumlah: ${qty} item\n` +
-        `• Estimasi Total: ${formatRupiah(total)}\n\n` +
-        `*Data Pemesan:*\n` +
-        `• Nama: ${buyerName || '-'}\n` +
-        `• Alamat/Domisili: ${buyerAddress || '-'}\n` +
-        (note ? `• Catatan Khusus: ${note}\n` : '') +
-        `\nMohon informasi ketersediaan stok dan konfirmasi total pembayaran. Terima kasih!`
-      );
-    },
-
     memberRegistration(regData) {
       return (
         `*PENDAFTARAN ANGGOTA BARU*\n` +
@@ -651,14 +403,14 @@ END $$;
         return (
           `Selamat Bapak/Ibu ${applicant.fullName}! 🎉\n\n` +
           `Proses verifikasi pendaftaran keanggotaan Koperasi Kelurahan Merah Putih Ulujami (Ref: *${applicant.refCode}*) telah *SELESAI & RESMI DISETUJUI*.\n\n` +
-          `Kini Anda telah terdaftar sebagai anggota penuh dan berhak menikmati harga khusus Toko Sembako, promo Galeri UMKM, serta hak Sisa Hasil Usaha (SHU) tahunan. Buku keanggotaan dapat diambil di kantor koperasi.`
+          `Kini Anda telah terdaftar sebagai anggota penuh dan berhak menikmati hak Sisa Hasil Usaha (SHU) tahunan serta fasilitas keanggotaan koperasi. Buku keanggotaan dapat diambil di kantor sekretariat.`
         );
       },
       rejectionClarification(applicant) {
         return (
           `Yth. Bapak/Ibu ${applicant.fullName},\n\n` +
           `Sehubungan dengan formulir pendaftaran anggota Anda (Ref: *${applicant.refCode}*), terdapat data domisili atau persyaratan administrasi yang memerlukan klarifikasi lebih lanjut.\n\n` +
-          `Mohon berkenan membalas pesan ini atau berkunjung langsung ke Sekretariat Koperasi pada jam kerja agar kami dapat membantu prosesnya. Terima kasih.`
+          `Silakan menghubungi pengurus kembali atau mengunjungi Sekretariat Koperasi pada hari kerja. Terima kasih.`
         );
       }
     }
@@ -687,7 +439,6 @@ END $$;
           return reject(new Error('Berkas yang dipilih bukan berkas gambar valid.'));
         }
 
-        // Berkas vektor SVG tidak memerlukan pemrosesan raster canvas
         if (file.type === 'image/svg+xml') {
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target.result);
@@ -709,7 +460,6 @@ END $$;
             let width = img.naturalWidth || img.width;
             let height = img.naturalHeight || img.height;
 
-            // Hitung skala aspect ratio proporsional
             if (width > maxWidth || height > maxHeight) {
               if (width / height > maxWidth / maxHeight) {
                 height = Math.round((height * maxWidth) / width);
@@ -724,9 +474,7 @@ END $$;
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              return resolve(e.target.result); // Fallback ke raw data jika canvas gagal
-            }
+            if (!ctx) return resolve(e.target.result);
 
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
@@ -736,13 +484,10 @@ END $$;
               ctx.drawImage(img, 0, 0, width, height);
               resolve(canvas.toDataURL('image/png'));
             } else {
-              // Beri latar belakang putih solid agar area transparan tidak menjadi hitam saat dikonversi ke JPEG
               ctx.fillStyle = '#FFFFFF';
               ctx.fillRect(0, 0, width, height);
               ctx.drawImage(img, 0, 0, width, height);
               let result = canvas.toDataURL('image/jpeg', quality);
-
-              // Jika dataURL masih lebih dari 450KB, turunkan kompresi ke 0.70 agar hemat memori
               if (result.length > 450 * 1024) {
                 result = canvas.toDataURL('image/jpeg', 0.70);
               }
@@ -761,15 +506,6 @@ END $$;
       if (!localStorage.getItem(KEYS.PROFILE)) {
         localStorage.setItem(KEYS.PROFILE, JSON.stringify(SEED_PROFILE));
       }
-      if (!localStorage.getItem(KEYS.CATEGORIES)) {
-        localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(SEED_CATEGORIES));
-      }
-      if (!localStorage.getItem(KEYS.UNITS)) {
-        localStorage.setItem(KEYS.UNITS, JSON.stringify(SEED_UNITS));
-      }
-      if (!localStorage.getItem(KEYS.PRODUCTS)) {
-        localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
-      }
       if (!localStorage.getItem(KEYS.BOARD)) {
         localStorage.setItem(KEYS.BOARD, JSON.stringify(SEED_BOARD));
       }
@@ -783,18 +519,21 @@ END $$;
         }));
       }
 
-      // 2. Siapkan Supabase jika konfigurasi tersedia
-      this.initSupabase();
+      // Bersihkan sisa modul produk & unit dari memori lokal
+      localStorage.removeItem('kmp_categories');
+      localStorage.removeItem('kmp_business_units');
+      localStorage.removeItem('kmp_products');
 
-      // 3. Sinkronkan data dari cloud di latar belakang secara asinkron
-      if (this.isCloudEnabled()) {
+      // 2. Hubungkan ke database Supabase bila online
+      const client = this.getSupabaseClient();
+      if (client && this.isCloudEnabled()) {
         this.syncFromSupabase().catch(err => {
-          console.warn('[Supabase Hybrid] Sinkronisasi awal berjalan offline/tertunda:', err?.message || err);
+          console.warn('[Supabase Init Sync]: Offline / Fallback Lokal Aktif', err?.message || err);
         });
       }
     },
 
-    // ==================== INTEGRASI SUPABASE ====================
+    // ==================== DATABASE CONFIGURATION (SUPABASE) ====================
     getSupabaseConfig() {
       const DEFAULT_CONFIG = {
         url: 'https://ldrpkcokeqadramodafr.supabase.co',
@@ -805,82 +544,58 @@ END $$;
       try {
         const raw = localStorage.getItem(KEYS.SUPABASE_CONFIG);
         if (!raw) return DEFAULT_CONFIG;
-
         const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return DEFAULT_CONFIG;
 
-        // Validasi kelayakan format URL dan panjang string Anon Key
-        const isUrlValid = isValidHttpUrl(parsed.url);
-        const isKeyValid = isValidAnonKey(parsed.anonKey);
+        const url = isValidHttpUrl(parsed.url) ? parsed.url.trim() : DEFAULT_CONFIG.url;
+        const anonKey = isValidAnonKey(parsed.anonKey) ? parsed.anonKey.trim() : DEFAULT_CONFIG.anonKey;
+        const isEnabled = parsed.isEnabled !== undefined ? Boolean(parsed.isEnabled) : DEFAULT_CONFIG.isEnabled;
 
-        // KASUS 1: Jika data di localStorage kosong (""), invalid, atau dummy lama
-        if (!isUrlValid || !isKeyValid) {
-          localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(DEFAULT_CONFIG));
-          return DEFAULT_CONFIG;
-        }
-
-        // KASUS 2: Jika data di localStorage berasal dari project default tetapi isEnabled
-        // tersisa false dari sesi dev/testing sebelumnya, otomatis pulihkan isEnabled menjadi true!
-        const isDefaultProject = parsed.url.trim().toLowerCase() === DEFAULT_CONFIG.url.toLowerCase();
-        const isEnabled = isDefaultProject ? true : (parsed.isEnabled !== false);
-
-        return {
-          url: parsed.url.trim(),
-          anonKey: parsed.anonKey.trim(),
-          isEnabled: isEnabled
-        };
+        return { url, anonKey, isEnabled };
       } catch (e) {
         return DEFAULT_CONFIG;
       }
     },
 
-    saveSupabaseConfig(config) {
-      localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(config));
+    saveSupabaseConfig(cfg) {
+      const current = this.getSupabaseConfig();
+      const updated = {
+        url: isValidHttpUrl(cfg.url) ? cfg.url.trim() : (cfg.url ? cfg.url.trim() : current.url),
+        anonKey: isValidAnonKey(cfg.anonKey) ? cfg.anonKey.trim() : (cfg.anonKey ? cfg.anonKey.trim() : current.anonKey),
+        isEnabled: cfg.isEnabled !== undefined ? Boolean(cfg.isEnabled) : current.isEnabled
+      };
+      localStorage.setItem(KEYS.SUPABASE_CONFIG, JSON.stringify(updated));
       _supabaseInstance = null;
-      this.initSupabase();
-      return config;
+      return updated;
     },
 
     isCloudEnabled() {
       const cfg = this.getSupabaseConfig();
-      return !!(cfg && cfg.isEnabled && isValidHttpUrl(cfg.url) && isValidAnonKey(cfg.anonKey) && window.supabase);
-    },
-
-    initSupabase() {
-      const cfg = this.getSupabaseConfig();
-      if (cfg && cfg.isEnabled && isValidHttpUrl(cfg.url) && isValidAnonKey(cfg.anonKey) && window.supabase) {
-        try {
-          if (!_supabaseInstance) {
-            _supabaseInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
-              auth: { persistSession: false },
-              realtime: { params: { eventsPerSecond: 10 } }
-            });
-          }
-          return _supabaseInstance;
-        } catch (e) {
-          console.warn('[Supabase Init Warning]:', e?.message || e);
-          _supabaseInstance = null;
-          return null;
-        }
-      }
-      _supabaseInstance = null;
-      return null;
+      return Boolean(cfg && cfg.isEnabled && isValidHttpUrl(cfg.url) && isValidAnonKey(cfg.anonKey) && window.supabase);
     },
 
     getSupabaseClient() {
-      if (!_supabaseInstance) {
-        this.initSupabase();
+      if (_supabaseInstance) return _supabaseInstance;
+      const cfg = this.getSupabaseConfig();
+      if (cfg && cfg.isEnabled && isValidHttpUrl(cfg.url) && isValidAnonKey(cfg.anonKey) && window.supabase) {
+        try {
+          _supabaseInstance = window.supabase.createClient(cfg.url, cfg.anonKey, {
+            auth: { persistSession: false }
+          });
+          return _supabaseInstance;
+        } catch (e) {
+          console.warn('[Supabase Client Init Error]:', e);
+          return null;
+        }
       }
-      return _supabaseInstance;
+      return null;
     },
 
-    // Uji Koneksi Langsung ke Supabase
     async testSupabaseConnection() {
       const client = this.getSupabaseClient();
       if (!client) {
         return {
           success: false,
-          message: 'URL atau Anon Key Supabase belum diisi atau pustaka Supabase belum termuat.'
+          message: 'Klien Supabase belum aktif atau SDK belum dimuat di peramban.'
         };
       }
       try {
@@ -888,35 +603,31 @@ END $$;
         if (error) {
           return {
             success: false,
-            message: `Gagal query: ${error.message}. Pastikan skema tabel sudah dijalankan di SQL Editor.`
+            message: `Gagal query Supabase: ${error.message}`
           };
         }
         return {
           success: true,
-          message: 'Koneksi ke Supabase PostgreSQL Berhasil! Database Cloud Aktif & Siap Digunakan.',
-          data
+          message: 'Koneksi ke Supabase PostgreSQL Berhasil & Responsif!'
         };
       } catch (err) {
         return {
           success: false,
-          message: `Koneksi gagal: ${err.message}`
+          message: `Eksepsi jaringan: ${err.message || err}`
         };
       }
     },
 
-    // 🚀 Ekspor / Unggah Semua Data Lokal ke Supabase (1-Click Cloud Seed)
+    // Ekspor / Unggah Semua Data Lokal ke Supabase
     async exportAllToSupabase() {
       const client = this.getSupabaseClient();
       if (!client) throw new Error('Supabase belum terhubung.');
 
       const profile = this.getProfile();
-      const categories = this.getCategories();
-      const units = this.getUnits();
-      const products = this.getProducts();
       const board = this.getBoard();
       const registrations = this.getRegistrations();
 
-      // 1. Profil
+      // 1. Profil & Gambar CMS
       await client.from('kmp_profile').upsert({
         id: 1,
         name: profile.name,
@@ -933,53 +644,15 @@ END $$;
         logo_url: profile.logoUrl || '',
         logo_scale_desktop: profile.logoScaleDesktop || 48,
         logo_scale_mobile: profile.logoScaleMobile || 38,
+        hero_image_url: profile.heroImageUrl || '',
+        about_banner_url: profile.aboutBannerUrl || '',
+        cta_banner_url: profile.ctaBannerUrl || '',
         stats: profile.stats || {},
         mission: profile.mission || [],
         values: profile.values || []
       });
 
-      // 2. Kategori
-      if (categories.length > 0) {
-        await client.from('kmp_categories').upsert(categories.map(c => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug
-        })));
-      }
-
-      // 3. Unit Usaha
-      if (units.length > 0) {
-        await client.from('kmp_business_units').upsert(units.map(u => ({
-          id: u.id,
-          name: u.name,
-          category: u.category,
-          pic: u.pic,
-          hours: u.hours,
-          contact: u.contact,
-          description: u.description,
-          features: u.features || [],
-          icon: u.icon || 'storefront',
-          image: u.image
-        })));
-      }
-
-      // 4. Produk
-      if (products.length > 0) {
-        await client.from('kmp_products').upsert(products.map(p => ({
-          id: p.id,
-          name: p.name,
-          category: p.category,
-          unit_id: (p.unitId && String(p.unitId).trim()) ? String(p.unitId).trim() : null,
-          price: parseInt(p.price, 10) || 0,
-          stock: parseInt(p.stock, 10) || 0,
-          description: p.description || '',
-          image: p.image || '',
-          featured: !!p.featured,
-          is_published: p.isPublished !== false
-        })));
-      }
-
-      // 5. Pengurus
+      // 2. Pengurus
       if (board.length > 0) {
         await client.from('kmp_board_members').upsert(board.map(b => ({
           id: b.id,
@@ -992,7 +665,7 @@ END $$;
         })));
       }
 
-      // 6. Registrasi
+      // 3. Registrasi
       if (registrations.length > 0) {
         await client.from('kmp_registrations').upsert(registrations.map(r => ({
           id: r.id,
@@ -1010,7 +683,7 @@ END $$;
       return { success: true };
     },
 
-    // 📥 Tarik Data dari Cloud ke Lokal (Thread-Safe Mutex & Race Condition Guard)
+    // Tarik Data dari Cloud ke Lokal (Thread-Safe Mutex & Race Condition Guard)
     async syncFromSupabase() {
       if (_syncPromise) return _syncPromise;
 
@@ -1019,18 +692,14 @@ END $$;
 
       _syncPromise = (async () => {
         try {
-          const [pRes, cRes, uRes, prRes, bRes, rRes] = await Promise.all([
+          const [pRes, bRes, rRes] = await Promise.all([
             client.from('kmp_profile').select('*').limit(1),
-            client.from('kmp_categories').select('*'),
-            client.from('kmp_business_units').select('*'),
-            client.from('kmp_products').select('*'),
             client.from('kmp_board_members').select('*'),
             client.from('kmp_registrations').select('*')
           ]);
 
           let hasUpdated = false;
 
-          // Helper Merge Aman: Cloud menimpa data ber-ID sama, tetapi data lokal yang belum ada di cloud tidak terhapus
           const mergeById = (localItems, cloudItems) => {
             const map = new Map();
             (localItems || []).forEach(item => {
@@ -1065,6 +734,9 @@ END $$;
               logoUrl: row.logo_url || currentProf.logoUrl,
               logoScaleDesktop: row.logo_scale_desktop || currentProf.logoScaleDesktop,
               logoScaleMobile: row.logo_scale_mobile || currentProf.logoScaleMobile,
+              heroImageUrl: row.hero_image_url || currentProf.heroImageUrl,
+              aboutBannerUrl: row.about_banner_url || currentProf.aboutBannerUrl,
+              ctaBannerUrl: row.cta_banner_url || currentProf.ctaBannerUrl,
               stats: row.stats || currentProf.stats,
               mission: row.mission || currentProf.mission,
               values: row.values || currentProf.values
@@ -1073,60 +745,7 @@ END $$;
             hasUpdated = true;
           }
 
-          // 2. Kategori Produk
-          if (cRes.data && cRes.data.length > 0) {
-            const localCats = this.getCategories();
-            const cloudCats = cRes.data.map(c => ({
-              id: c.id,
-              name: c.name,
-              slug: c.slug
-            }));
-            const merged = mergeById(localCats, cloudCats);
-            localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(merged));
-            hasUpdated = true;
-          }
-
-          // 3. Unit Usaha
-          if (uRes.data && uRes.data.length > 0) {
-            const localUnits = this.getUnits();
-            const cloudUnits = uRes.data.map(u => ({
-              id: u.id,
-              name: u.name,
-              category: u.category,
-              pic: u.pic,
-              hours: u.hours,
-              contact: u.contact,
-              description: u.description,
-              features: u.features,
-              icon: u.icon,
-              image: u.image
-            }));
-            const merged = mergeById(localUnits, cloudUnits);
-            localStorage.setItem(KEYS.UNITS, JSON.stringify(merged));
-            hasUpdated = true;
-          }
-
-          // 4. Produk
-          if (prRes.data && prRes.data.length > 0) {
-            const localProds = this.getProducts();
-            const cloudProds = prRes.data.map(p => ({
-              id: p.id,
-              name: p.name,
-              category: p.category,
-              unitId: p.unit_id || '',
-              price: parseInt(p.price, 10) || 0,
-              stock: parseInt(p.stock, 10) || 0,
-              description: p.description || '',
-              image: p.image || '',
-              featured: !!p.featured,
-              isPublished: p.is_published !== false
-            }));
-            const merged = mergeById(localProds, cloudProds);
-            localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(merged));
-            hasUpdated = true;
-          }
-
-          // 5. Struktur Pengurus
+          // 2. Struktur Pengurus
           if (bRes.data && bRes.data.length > 0) {
             const localBoard = this.getBoard();
             const cloudBoard = bRes.data.map(b => ({
@@ -1144,7 +763,7 @@ END $$;
             hasUpdated = true;
           }
 
-          // 6. Pendaftaran Anggota
+          // 3. Pendaftaran Anggota
           if (rRes.data && rRes.data.length > 0) {
             const localRegs = this.getRegistrations();
             const cloudRegs = rRes.data.map(r => ({
@@ -1181,21 +800,21 @@ END $$;
       return _syncPromise;
     },
 
-    // Reset Data ke Benih Asli
+    // Reset ke Kondisi Pabrikan Default
     resetToDefault() {
       localStorage.setItem(KEYS.PROFILE, JSON.stringify(SEED_PROFILE));
-      localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(SEED_CATEGORIES));
-      localStorage.setItem(KEYS.UNITS, JSON.stringify(SEED_UNITS));
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
       localStorage.setItem(KEYS.BOARD, JSON.stringify(SEED_BOARD));
       localStorage.setItem(KEYS.REGISTRATIONS, JSON.stringify(SEED_REGISTRATIONS));
       localStorage.setItem(KEYS.ADMIN_CREDENTIALS, JSON.stringify({
         username: 'admin',
         password: 'admin123'
       }));
+      localStorage.removeItem('kmp_categories');
+      localStorage.removeItem('kmp_business_units');
+      localStorage.removeItem('kmp_products');
     },
 
-    // ==================== PROFILE ====================
+    // ==================== PROFILE & IMAGE CMS ====================
     getProfile() {
       try {
         const raw = localStorage.getItem(KEYS.PROFILE);
@@ -1224,223 +843,22 @@ END $$;
             whatsapp: updated.whatsapp,
             email: updated.email,
             operational_hours: updated.operationalHours,
+            maps_embed: updated.mapsEmbed,
             logo_url: updated.logoUrl,
             logo_scale_desktop: updated.logoScaleDesktop,
-            logo_scale_mobile: updated.logoScaleMobile
+            logo_scale_mobile: updated.logoScaleMobile,
+            hero_image_url: updated.heroImageUrl,
+            about_banner_url: updated.aboutBannerUrl,
+            cta_banner_url: updated.ctaBannerUrl
           }),
-          'Simpan Profil'
+          'Simpan Profil & Aset Gambar'
         );
       }
 
       return updated;
     },
 
-    // ==================== CATEGORIES ====================
-    getCategories() {
-      try {
-        const raw = localStorage.getItem(KEYS.CATEGORIES);
-        return raw ? JSON.parse(raw) : SEED_CATEGORIES;
-      } catch (e) {
-        return SEED_CATEGORIES;
-      }
-    },
-
-    saveCategory(cat) {
-      const cats = this.getCategories();
-      const id = (cat.id && String(cat.id).trim()) ? String(cat.id).trim() : ('cat-' + Date.now());
-      const rawSlug = (cat.slug && String(cat.slug).trim()) ? String(cat.slug).trim() : (cat.name || '');
-      const slug = rawSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ('cat-' + Date.now());
-
-      const target = {
-        id: id,
-        name: String(cat.name || '').trim(),
-        slug: slug
-      };
-
-      const idx = cats.findIndex(c => c.id === target.id);
-      if (idx >= 0) {
-        cats[idx] = { ...cats[idx], ...target };
-      } else {
-        cats.push(target);
-      }
-      localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cats));
-
-      const client = this.getSupabaseClient();
-      if (client && this.isCloudEnabled()) {
-        executeCloudQuery(
-          client.from('kmp_categories').upsert({
-            id: target.id,
-            name: target.name,
-            slug: target.slug
-          }),
-          'Simpan Kategori'
-        );
-      }
-
-      return cats;
-    },
-
-    deleteCategory(id) {
-      let cats = this.getCategories();
-      cats = cats.filter(c => c.id !== id);
-      localStorage.setItem(KEYS.CATEGORIES, JSON.stringify(cats));
-
-      const client = this.getSupabaseClient();
-      if (client && this.isCloudEnabled()) {
-        executeCloudQuery(
-          client.from('kmp_categories').delete().eq('id', id),
-          'Hapus Kategori'
-        );
-      }
-
-      return cats;
-    },
-
-    // ==================== UNITS ====================
-    getUnits() {
-      try {
-        const raw = localStorage.getItem(KEYS.UNITS);
-        return raw ? JSON.parse(raw) : SEED_UNITS;
-      } catch (e) {
-        return SEED_UNITS;
-      }
-    },
-
-    getUnitById(id) {
-      const units = this.getUnits();
-      return units.find(u => u.id === id) || null;
-    },
-
-    saveUnit(unit) {
-      const units = this.getUnits();
-      if (unit.id) {
-        const idx = units.findIndex(u => u.id === unit.id);
-        if (idx >= 0) units[idx] = { ...units[idx], ...unit };
-        else units.push(unit);
-      } else {
-        unit.id = 'unit-' + Date.now();
-        units.push(unit);
-      }
-      localStorage.setItem(KEYS.UNITS, JSON.stringify(units));
-
-      const client = this.getSupabaseClient();
-      if (client && this.isCloudEnabled()) {
-        executeCloudQuery(
-          client.from('kmp_business_units').upsert({
-            id: unit.id,
-            name: unit.name,
-            category: unit.category,
-            pic: unit.pic,
-            hours: unit.hours,
-            contact: unit.contact,
-            description: unit.description,
-            features: unit.features,
-            icon: unit.icon || 'storefront',
-            image: unit.image
-          }),
-          'Simpan Unit Usaha'
-        );
-      }
-
-      return units;
-    },
-
-    deleteUnit(id) {
-      let units = this.getUnits();
-      units = units.filter(u => u.id !== id);
-      localStorage.setItem(KEYS.UNITS, JSON.stringify(units));
-
-      const client = this.getSupabaseClient();
-      if (client && this.isCloudEnabled()) {
-        executeCloudQuery(
-          client.from('kmp_business_units').delete().eq('id', id),
-          'Hapus Unit Usaha'
-        );
-      }
-
-      return units;
-    },
-
-    // ==================== PRODUCTS ====================
-    getProducts() {
-      try {
-        const raw = localStorage.getItem(KEYS.PRODUCTS);
-        return raw ? JSON.parse(raw) : SEED_PRODUCTS;
-      } catch (e) {
-        return SEED_PRODUCTS;
-      }
-    },
-
-    getProductById(id) {
-      const prods = this.getProducts();
-      return prods.find(p => p.id === id) || null;
-    },
-
-    saveProduct(prod) {
-      const prods = this.getProducts();
-      const id = (prod.id && String(prod.id).trim()) ? String(prod.id).trim() : ('prod-' + Date.now());
-      const unitId = (prod.unitId && String(prod.unitId).trim()) ? String(prod.unitId).trim() : null;
-
-      const productRecord = {
-        id: id,
-        name: String(prod.name || '').trim(),
-        category: String(prod.category || 'sembako').trim(),
-        unitId: unitId,
-        price: parseInt(prod.price, 10) || 0,
-        stock: parseInt(prod.stock, 10) || 0,
-        description: String(prod.description || '').trim(),
-        image: String(prod.image || '').trim(),
-        featured: Boolean(prod.featured),
-        isPublished: prod.isPublished !== false
-      };
-
-      const idx = prods.findIndex(p => p.id === productRecord.id);
-      if (idx >= 0) {
-        prods[idx] = { ...prods[idx], ...productRecord };
-      } else {
-        prods.unshift(productRecord);
-      }
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(prods));
-
-      const client = this.getSupabaseClient();
-      if (client && this.isCloudEnabled()) {
-        executeCloudQuery(
-          client.from('kmp_products').upsert({
-            id: productRecord.id,
-            name: productRecord.name,
-            category: productRecord.category,
-            unit_id: productRecord.unitId,
-            price: productRecord.price,
-            stock: productRecord.stock,
-            description: productRecord.description,
-            image: productRecord.image,
-            featured: productRecord.featured,
-            is_published: productRecord.isPublished
-          }),
-          'Simpan Produk'
-        );
-      }
-
-      return prods;
-    },
-
-    deleteProduct(id) {
-      let prods = this.getProducts();
-      prods = prods.filter(p => p.id !== id);
-      localStorage.setItem(KEYS.PRODUCTS, JSON.stringify(prods));
-
-      const client = this.getSupabaseClient();
-      if (client && this.isCloudEnabled()) {
-        executeCloudQuery(
-          client.from('kmp_products').delete().eq('id', id),
-          'Hapus Produk'
-        );
-      }
-
-      return prods;
-    },
-
-    // ==================== BOARD MEMBERS ====================
+    // ==================== BOARD MEMBERS (PENGURUS) ====================
     getBoard() {
       try {
         const raw = localStorage.getItem(KEYS.BOARD);
@@ -1480,7 +898,7 @@ END $$;
         );
       }
 
-      return list;
+      return member;
     },
 
     deleteBoardMember(id) {
@@ -1499,7 +917,7 @@ END $$;
       return list;
     },
 
-    // ==================== REGISTRATIONS (PENDAFTARAN) ====================
+    // ==================== REGISTRATIONS (PENDAFTARAN ANGGOTA WA) ====================
     getRegistrations() {
       try {
         const raw = localStorage.getItem(KEYS.REGISTRATIONS);
@@ -1565,8 +983,6 @@ END $$;
         const client = this.getSupabaseClient();
         if (client && this.isCloudEnabled()) {
           const reg = list[idx];
-          // Kirim seluruh skema record via upsert agar pendaftaran (bahkan dari data awal)
-          // dipastikan tersimpan dan ter-update di Supabase tanpa 0-row update failure
           executeCloudQuery(
             client.from('kmp_registrations').upsert({
               id: reg.id,
@@ -1626,15 +1042,14 @@ END $$;
     },
 
     recordFailedAttempt() {
-      let status = this.getBruteForceStatus();
-      let attempts = status.attempts + 1;
+      const status = this.getBruteForceStatus();
+      const attempts = (status.attempts || 0) + 1;
       let lockedUntil = null;
       if (attempts >= 5) {
-        lockedUntil = Date.now() + 30000;
+        lockedUntil = Date.now() + 60 * 1000;
       }
-      const state = { attempts, lockedUntil };
-      localStorage.setItem(KEYS.LOGIN_ATTEMPTS, JSON.stringify(state));
-      return this.getBruteForceStatus();
+      localStorage.setItem(KEYS.LOGIN_ATTEMPTS, JSON.stringify({ attempts, lockedUntil }));
+      return { attempts, isLocked: attempts >= 5, remainingSeconds: attempts >= 5 ? 60 : 0 };
     },
 
     resetFailedAttempts() {
@@ -1647,28 +1062,19 @@ END $$;
         return {
           success: false,
           locked: true,
-          remainingSeconds: brute.remainingSeconds,
-          message: `Terlalu banyak percobaan gagal. Silakan tunggu ${brute.remainingSeconds} detik.`
+          message: `Terlalu banyak percobaan gagal. Akses formulir dikunci selama ${brute.remainingSeconds} detik.`
         };
       }
 
-      let creds;
+      let creds = { username: 'admin', password: 'admin123' };
       try {
-        creds = JSON.parse(localStorage.getItem(KEYS.ADMIN_CREDENTIALS)) || { username: 'admin', password: 'admin123' };
-      } catch (e) {
-        creds = { username: 'admin', password: 'admin123' };
-      }
+        const raw = localStorage.getItem(KEYS.ADMIN_CREDENTIALS);
+        if (raw) creds = JSON.parse(raw);
+      } catch (e) {}
 
-      const inputUser = (username || '').trim().toLowerCase();
-      const inputPass = (password || '').trim();
-
-      if (inputUser === creds.username.toLowerCase() && inputPass === creds.password) {
+      if (username === creds.username && password === creds.password) {
         this.resetFailedAttempts();
-        const session = {
-          loggedIn: true,
-          username: creds.username,
-          loginTime: new Date().toISOString()
-        };
+        const session = { loggedIn: true, user: username, timestamp: Date.now() };
         localStorage.setItem(KEYS.AUTH_SESSION, JSON.stringify(session));
         return { success: true };
       } else {
@@ -1676,7 +1082,6 @@ END $$;
         return {
           success: false,
           locked: state.isLocked,
-          remainingSeconds: state.remainingSeconds,
           attempts: state.attempts,
           message: state.isLocked
             ? `Terlalu banyak percobaan gagal. Akses formulir dikunci selama ${state.remainingSeconds} detik.`
