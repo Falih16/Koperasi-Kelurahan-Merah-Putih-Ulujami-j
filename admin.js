@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 1. Verifikasi Sesi Login
   if (!Store.checkAuth()) {
-    window.location.href = '/login';
+    window.location.href = 'login.html';
     return;
   }
 
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.logoutBtn.addEventListener('click', () => {
       if (confirm('Apakah Anda yakin ingin keluar dari Portal Pengurus?')) {
         Store.logout();
-        window.location.href = '/login';
+        window.location.href = 'login.html';
       }
     });
   }
