@@ -10,13 +10,95 @@
   <!-- Favicon Dinamis -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%238F1722'/><circle cx='50' cy='50' r='30' fill='%23FFFFFF'/><circle cx='50' cy='50' r='18' fill='%23C92532'/></svg>">
 
-  <!-- Google Fonts: Plus Jakarta Sans (Standar Eksekutif) -->
+  <!-- Google Fonts: Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Stylesheet Utama -->
   <link rel="stylesheet" href="./style.css">
+
+  <!-- Perbaikan Layout Navbar & List Reset -->
+  <style>
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: #ffffff;
+      border-bottom: 2px solid #C92532;
+    }
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 12px 0;
+    }
+    .site-nav {
+      display: flex;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    .nav-menu {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      list-style: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      gap: 20px;
+    }
+    .nav-menu li {
+      list-style: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .nav-menu .nav-link {
+      text-decoration: none;
+      color: #333333;
+      font-weight: 600;
+      font-size: 0.92rem;
+      transition: color 0.2s ease;
+      white-space: nowrap;
+    }
+    .nav-menu .nav-link:hover,
+    .nav-menu .nav-link.active {
+      color: #C92532;
+    }
+    .brand-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    @media (max-width: 991px) {
+      .site-nav {
+        display: none; /* Dikelola oleh toggle menu mobile */
+      }
+      .site-nav.active {
+        display: block;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: #ffffff;
+        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        padding: 16px 20px;
+      }
+      .site-nav.active .nav-menu {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -34,7 +116,7 @@
       </a>
 
       <!-- Menu Navigasi Desktop & Mobile -->
-      <nav>
+      <nav class="site-nav" id="mainNav">
         <ul class="nav-menu" id="navMenu">
           <li><a href="#beranda" class="nav-link active">Beranda</a></li>
           <li><a href="#tentang" class="nav-link">Tentang Kami</a></li>
@@ -194,7 +276,7 @@
 
           <div style="background: var(--pure-white); padding: 32px; border-radius: var(--radius-xl); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
             <h3 style="margin-bottom: 18px; font-size: 1.3rem; color: var(--deep-burgundy);">4 Pilar Misi Strategis</h3>
-            <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px;">
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px; padding: 0; margin: 0;">
               <li style="display: flex; gap: 14px; align-items: flex-start;">
                 <span class="step-num" style="background: var(--soft-red); color: var(--primary-red);">1</span>
                 <div>
@@ -360,7 +442,7 @@
           </div>
 
           <div>
-            <ul class="reg-steps">
+            <ul class="reg-steps" style="list-style: none; padding: 0; margin: 0;">
               <li>
                 <span class="step-num">1</span>
                 <span>Isi formulir ringkas di sebelah kanan untuk memperoleh Kode Registrasi resmi.</span>
@@ -530,7 +612,7 @@
 
       <div>
         <h5 class="footer-heading">Navigasi Utama</h5>
-        <ul class="footer-links">
+        <ul class="footer-links" style="list-style: none; padding: 0; margin: 0;">
           <li><a href="#beranda">Beranda</a></li>
           <li><a href="#tentang">Tentang Kami</a></li>
           <li><a href="#alur">Alur Pendaftaran (4 Langkah)</a></li>
@@ -542,7 +624,7 @@
 
       <div>
         <h5 class="footer-heading">Keanggotaan & Layanan</h5>
-        <ul class="footer-links">
+        <ul class="footer-links" style="list-style: none; padding: 0; margin: 0;">
           <li><a href="#pendaftaran">Daftar Calon Anggota</a></li>
           <li><a href="#pendaftaran">Komitmen Privasi Tanpa NIK</a></li>
           <li><a href="#alur">Panduan Verifikasi Berkas Fisik</a></li>
@@ -552,7 +634,7 @@
 
       <div>
         <h5 class="footer-heading">Akses Khusus</h5>
-        <ul class="footer-links">
+        <ul class="footer-links" style="list-style: none; padding: 0; margin: 0;">
           <li><a href="login.html" style="font-weight:700; color:#FFD54F;">→ Masuk Portal Pengurus</a></li>
           <li><a href="#kontak">Hotline WhatsApp Sekretariat</a></li>
           <li><a href="#tentang">Legalitas Badan Hukum AHU</a></li>
@@ -584,7 +666,6 @@
         <div id="regSuccessCode" style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 700; color: var(--deep-burgundy); background: var(--soft-red); padding: 10px 16px; border-radius: var(--radius-md); letter-spacing: 0.5px; margin-bottom: 16px; border: 1px dashed var(--primary-red);">
           REG-KMPU-XXXX
         </div>
-        <!-- Rangkuman Data Calon Anggota -->
         <div id="regSuccessSummary" style="background: var(--warm-neutral); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px; text-align: left; font-size: 0.88rem; line-height: 1.5;"></div>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; text-align: left;">
           Data formulir pendaftaran Anda telah tercatat aman ke sistem database pengurus dengan status <strong>Menunggu Verifikasi</strong>. Silakan klik tombol di bawah untuk langsung membuka WhatsApp resmi admin koperasi dengan format pendaftaran terstruktur.
